@@ -1,0 +1,285 @@
+from django.contrib import admin
+
+
+from .models import (
+    Subject,
+    SubjectSegment,
+    Face,
+    VideoRecord,
+    Frame,
+    VideoThumb,
+    Camera,
+    Task,
+    Stat,
+    Notification,
+    Worker,
+    Recognition,
+    RecognitionMatch,
+    HuntMatch
+)
+
+
+@admin.register(HuntMatch)
+class HuntMatchAdmin(admin.ModelAdmin):
+    pass
+
+
+class RecognitionMatchInline(admin.TabularInline):
+    model = RecognitionMatch
+    fields = (
+        'score', 'subject'
+    )
+    readonly_fields = (
+        'score', 'subject'
+    )
+
+
+@admin.register(Recognition)
+class RecognitionAdmin(admin.ModelAdmin):
+    inlines = (RecognitionMatchInline,)
+
+
+@admin.register(RecognitionMatch)
+class RecognitionMatchAdmin(admin.ModelAdmin):
+    pass
+
+
+class FaceInline(admin.TabularInline):
+    model = Face
+    fields = (
+        'id', 'frame', 'image'
+    )
+    readonly_fields = (
+        'id', 'frame', 'image'
+    )
+
+
+@admin.register(Subject)
+class SubjectAdmin(admin.ModelAdmin):
+    fields = (
+        'id',
+        'name',
+        'last_name',
+        'birthdate',
+        'full_name',
+        'age',
+        'sex',
+        'skin',
+        'created_at',
+        'updated_at',
+        'task'
+    )
+    # list_display = (
+    #     'id', 'name', 'created_at', 'updated_at',
+    # )
+    readonly_fields = (
+        'id',
+        'created_at',
+        'updated_at',
+        'full_name',
+        'age',
+        'task'
+    )
+    inlines = (FaceInline,)
+
+
+@admin.register(SubjectSegment)
+class SubjectSegmentAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Face)
+class FaceAdmin(admin.ModelAdmin):
+    fields = (
+        'id',
+        'frame',
+        'image',
+        'landmarks',
+        'box',
+        'created_at',
+        'size_bytes',
+        'subject'
+    )
+    readonly_fields = (
+        'id',
+        'landmarks',
+        'box',
+        'created_at'
+    )
+
+
+@admin.register(VideoThumb)
+class VideoThumbAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        'id',
+    )
+
+
+class VideoThumbInline(admin.TabularInline):
+    model = VideoThumb
+    readonly_fields = (
+        'id', 'image'
+    )
+
+
+@admin.register(VideoRecord)
+class VideoRecordAdmin(admin.ModelAdmin):
+
+    fields = (
+        'id',
+        'path',
+        'created_at',
+        'updated_at',
+        'starts_at',
+        'finish_at',
+        'size',
+        'size_bytes',
+        'url',
+        'frame_width',
+        'frame_height',
+        'duration_seconds',
+        'full_path',
+        'frames_count',
+        'processing_time',
+        'frame_rate',
+        'faces_count'
+    )
+    readonly_fields = (
+        'id',
+        'created_at',
+        'updated_at',
+        'size',
+        'url',
+        'frame_width',
+        'frame_height',
+        'duration_seconds',
+        'full_path'
+    )
+    inlines = (VideoThumbInline,)
+
+
+@admin.register(Frame)
+class FrameAdmin(admin.ModelAdmin):
+    fields = (
+        'id', 'image', 'timestamp', 'size_bytes'
+    )
+    readonly_fields = (
+        'id',
+    )
+    inlines = (FaceInline,)
+
+
+class TaskInline(admin.TabularInline):
+    model = Task
+    fields = (
+        'id',
+        'status',
+        'started_at',
+        'finished_at',
+        'frames_count',
+        'faces_count',
+        'processing_time',
+        'frame_rate'
+    )
+    readonly_fields = (
+        'id',
+        'status',
+        'started_at',
+        'finished_at',
+        'frames_count',
+        'faces_count',
+        'processing_time'
+    )
+
+
+@admin.register(Camera)
+class CameraAdmin(admin.ModelAdmin):
+    fields = (
+        'id',
+        'stream_url',
+        'name',
+        'location_lat',
+        'location_lon',
+        'address',
+        'frames_count',
+        'processing_time',
+        'frame_rate',
+        'faces_count',
+    )
+    readonly_fields = (
+        'id',
+        'frames_count',
+        'processing_time',
+        'frame_rate',
+        'faces_count',
+    )
+
+    inlines = (TaskInline,)
+
+
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+
+    readonly_fields = (
+        'id',
+        'status',
+        'created_at',
+        'updated_at',
+        'started_at',
+        'finished_at',
+        'frames_count',
+        'processing_time',
+        'progress'
+    )
+
+
+@admin.register(Stat)
+class StatAdmin(admin.ModelAdmin):
+    fields = (
+        'id',
+        'name',
+        'timestamp',
+        'updated_at',
+        'value',
+        'resolution'
+    )
+
+    readonly_fields = (
+        'id',
+        'name',
+        'timestamp',
+        'updated_at',
+        'value',
+        'resolution'
+    )
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+
+    fields = (
+        'id',
+        'category',
+        'dtype',
+        'title',
+        'message',
+        'timestamp',
+        'resource',
+        'seen',
+    )
+
+    readonly_fields = (
+        'id',
+        'category',
+        'dtype',
+        'title',
+        'message',
+        'timestamp',
+        'resource',
+        'seen',
+    )
+
+
+@admin.register(Worker)
+class WorkerAdmin(admin.ModelAdmin):
+    pass
