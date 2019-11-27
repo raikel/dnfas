@@ -5,6 +5,6 @@
 </div>
 
 <div align="center">
-  A headless face analytics platform built on top of [dnfal](https://github.com/raikel/dnfal) library.
+  A headless face analytics platform built on top of <a href="https://github.com/raikel/dnfal">dnfal</a> library.
 </div>
 
