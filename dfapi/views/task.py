@@ -3,20 +3,47 @@ from rest_framework.response import Response
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.decorators import action
 
+from .mixins import (
+    RetrieveMixin,
+    ListMixin
+)
 from ..models import Task
 from ..serializers import TaskSerializer
 from .. import services
 
 
 class TaskView(
-    mixins.CreateModelMixin,
+    RetrieveMixin,
+    ListMixin,
     viewsets.GenericViewSet,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
 ):
+    """
+    retrieve:
+        Return a task instance.
 
+    list:
+        Return all task.
+
+    create:
+        Create a new task.
+
+    destroy:
+        Remove an existing task.
+
+    start:
+        Start task execution.
+
+    pause:
+        Start task execution.
+
+    resume:
+        Resume task execution.
+
+    stop:
+        Stop task execution.
+    """
+
+    model_name = 'Task'
     lookup_field = 'pk'
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
@@ -40,32 +67,6 @@ class TaskView(
             queryset = queryset.order_by(params['order_by'])
 
         return queryset
-
-    def list(self, request):
-        serializer_context = {'request': request}
-        page = self.paginate_queryset(self.get_queryset())
-
-        serializer = self.serializer_class(
-            page,
-            context=serializer_context,
-            many=True
-        )
-        return self.get_paginated_response(serializer.data)
-
-    def retrieve(self, request, pk):
-        serializer_context = {'request': request}
-
-        try:
-            task = self.queryset.get(pk=pk)
-        except Task.DoesNotExist:
-            raise NotFound(f'A task with pk={pk} does not exist.')
-
-        serializer = self.serializer_class(
-            task,
-            context=serializer_context
-        )
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request):
 
@@ -107,69 +108,21 @@ class TaskView(
 
     @action(detail=True, methods=['post'])
     def start(self, request, pk):
-
-        serializer_context = {'request': request}
-
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            raise NotFound(f'A task with pk={pk} does not exists.')
-
-        try:
-            services.tasks.pause(task)
-        except services.ServiceError as err:
-            raise ValidationError(err)
-
-        serializer = self.serializer_class(
-            task,
-            context=serializer_context
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        self._do_action(request, pk, 'start')
 
     @action(detail=True, methods=['post'])
     def pause(self, request, pk):
-
-        serializer_context = {'request': request}
-
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            raise NotFound(f'A task with pk={pk} does not exists.')
-
-        try:
-            services.tasks.pause(task)
-        except services.ServiceError as err:
-            raise ValidationError(err)
-
-        serializer = self.serializer_class(
-            task,
-            context=serializer_context
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        self._do_action(request, pk, 'pause')
 
     @action(detail=True, methods=['post'])
     def resume(self, request, pk):
-
-        serializer_context = {'request': request}
-
-        try:
-            task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
-            raise NotFound(f'A task with pk={pk} does not exists.')
-
-        try:
-            services.tasks.resume(task)
-        except services.ServiceError as err:
-            raise ValidationError(err)
-
-        serializer = self.serializer_class(
-            task,
-            context=serializer_context
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        self._do_action(request, pk, 'resume')
 
     @action(detail=True, methods=['post'])
     def stop(self, request, pk):
+        self._do_action(request, pk, 'stop')
+
+    def _do_action(self, request, pk, action_name):
         serializer_context = {'request': request}
 
         try:
@@ -178,7 +131,14 @@ class TaskView(
             raise NotFound(f'A task with pk={pk} does not exists.')
 
         try:
-            services.tasks.stop(task)
+            if action_name == 'start':
+                services.tasks.start(task)
+            elif action_name == 'pause':
+                services.tasks.pause(task)
+            elif action_name == 'resume':
+                services.tasks.resume(task)
+            elif action_name == 'stop':
+                services.tasks.stop(task)
         except services.ServiceError as err:
             raise ValidationError(err)
 

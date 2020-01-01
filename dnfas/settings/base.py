@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'dfapi',
     'users',
     'sysinf',
-    'corsheaders'
+    'corsheaders',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [
@@ -167,7 +168,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 DNFAL_DETECTOR_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_detector.pth'
-DNFAL_MARKER_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_marker.pth'
+DNFAL_MARKER_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_marker.npy'
 DNFAL_ENCODER_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_encoder.pth'
 
 # Logging

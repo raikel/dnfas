@@ -1,18 +1,34 @@
-from rest_framework import status, viewsets, mixins
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
+from rest_framework.response import Response
 
+from .mixins import (
+    ListMixin,
+    DestroyMixin
+)
 from ..models import Notification
 from ..serializers import NotificationSerializer
 
 
 class NotificationView(
-    mixins.ListModelMixin,
-    mixins.DestroyModelMixin,
+    ListMixin,
+    DestroyMixin,
     viewsets.GenericViewSet
 ):
+    """
+    list:
+        Return all notifications.
 
+    destroy:
+        Remove an existing notification.
+
+    see:
+        Mark an existing notification as seen.
+    """
+
+    model_name = 'Notification'
     lookup_field = 'pk'
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
@@ -21,34 +37,13 @@ class NotificationView(
         queryset = self.queryset
         return queryset
 
-    def list(self, request):
-        serializer_context = {'request': request}
-        page = self.paginate_queryset(self.get_queryset())
-
-        serializer = self.serializer_class(
-            page,
-            context=serializer_context,
-            many=True
-        )
-        return self.get_paginated_response(serializer.data)
-
-    def destroy(self, request, pk=None):
-        try:
-            notification = Notification.objects.get(pk=pk)
-        except Notification.DoesNotExist:
-            raise NotFound(f'Notification with pk={pk} does not exist.')
-
-        notification.delete()
-
-        return Response(None, status=status.HTTP_204_NO_CONTENT)
-
     @action(detail=True, methods=['post'])
     def see(self, request, pk=None):
         serializer_context = {'request': request}
 
         try:
             notification = Notification.objects.get(pk=pk)
-        except Notification.DoesNotExist:
+        except ObjectDoesNotExist:
             raise NotFound(f'Notification with pk={pk} does not exist.')
 
         notification.seen = True
@@ -59,4 +54,4 @@ class NotificationView(
             context=serializer_context
         )
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_200_OK)

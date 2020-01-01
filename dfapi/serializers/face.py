@@ -1,12 +1,12 @@
-from rest_framework import serializers
-from ..models import Face, Frame, SubjectSegment
-
-from dnfal.engine import EMBEDDINGS_LENGTH
-
-
-import numpy as np
 import base64
 import binascii
+
+import numpy as np
+from dnfal.engine import EMBEDDINGS_LENGTH
+from rest_framework import serializers
+
+from .abstracts import MaskFieldsSerializer
+from ..models import Face, Frame
 
 
 class NpArrayField(serializers.Field):
@@ -54,7 +54,7 @@ class FramesSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
-class FaceSerializer(serializers.ModelSerializer):
+class FaceSerializer(MaskFieldsSerializer):
 
     image = serializers.ImageField(required=False, allow_null=True)
     frame = FramesSerializer(required=False, allow_null=True)
@@ -111,18 +111,6 @@ class FaceSerializer(serializers.ModelSerializer):
             'box'
         )
 
-    # def create(self, validated_data):
-    #     face = Face.objects.create(**validated_data)
-    #     return face
-
-    # def to_representation(self, instance):
-    #     return {
-    #         'id': instance.id,
-    #         'image': instance.image.url,
-    #         'subject': None if instance.subject is None else instance.subject.id,
-    #         'landmarks': instance.landmarks
-    #     }
-
 
 class FacesSerializer(serializers.ModelSerializer):
 
@@ -142,14 +130,3 @@ class FrameSerializer(serializers.ModelSerializer):
         model = Frame
         fields = ('id', 'image', 'timestamp', 'faces')
         read_only_fields = ('id', 'faces')
-
-
-# class RecognitionSerializer(serializers.Serializer):
-#
-#     similarity_threshold = serializers.FloatField(required=False, allow_null=True)
-#     max_matches = serializers.IntegerField(required=False, allow_null=True)
-#     segments = serializers.PrimaryKeyRelatedField(
-#         queryset=SubjectSegment.objects.all(),
-#         many=True,
-#         required=False
-#     )

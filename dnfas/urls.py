@@ -18,6 +18,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from .apidoc import swagger_view, redoc_view
 
 
 urlpatterns = [
@@ -26,6 +27,8 @@ urlpatterns = [
     path('api/', include('dfapi.urls', 'dfapi',)),
     path('api/', include('users.urls', 'users',)),
     path('api/', include('sysinf.urls', 'sysinf',)),
+    path('api/docs/swagger/', swagger_view, name='schema-swagger-ui'),
+    path('api/docs/redoc/', redoc_view, name='schema-redoc'),
 ] + (
     static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) +
     static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -1,16 +1,37 @@
 from rest_framework import status, viewsets, mixins
 from rest_framework.response import Response
 
+from .mixins import (
+    RetrieveMixin,
+    ListMixin,
+    DestroyMixin
+)
 from ..models import Recognition
 from ..serializers import RecognitionSerializer
-
 from ..services.faces import face_analyzer
 
 
 class RecognitionView(
-    mixins.CreateModelMixin,
+    RetrieveMixin,
+    ListMixin,
+    DestroyMixin,
     viewsets.GenericViewSet
 ):
+    """
+    retrieve:
+        Return a recognition instance.
+
+    list:
+        Return all recognitions.
+
+    create:
+        Create a new recognition.
+
+    destroy:
+        Remove an existing recognition.
+    """
+
+    model_name = 'Recognition'
     lookup_field = 'pk'
     queryset = Recognition.objects.all()
     serializer_class = RecognitionSerializer

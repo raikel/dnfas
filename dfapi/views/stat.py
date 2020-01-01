@@ -1,18 +1,25 @@
 from rest_framework import status, viewsets, mixins
 from rest_framework.response import Response
 
+from .mixins import (
+    ListMixin
+)
 from ..models import Stat
 from ..serializers import StatSerializer
 
 
 class StatView(
-    mixins.ListModelMixin,
+    ListMixin,
     viewsets.GenericViewSet
 ):
+    """
+    list:
+        Return all stats.
+    """
 
+    model_name = 'Stat'
     lookup_field = 'pk'
     queryset = Stat.objects.all()
-    # permission_classes = (IsAuthenticatedOrReadOnly,)
     serializer_class = StatSerializer
 
     def get_queryset(self):
@@ -31,16 +38,3 @@ class StatView(
             queryset = queryset.order_by(order_by)
 
         return queryset
-
-    def list(self, request):
-        serializer_context = {'request': request}
-        # page = self.paginate_queryset(self.get_queryset())
-
-        serializer = self.serializer_class(
-            self.get_queryset(),
-            context=serializer_context,
-            many=True
-        )
-        return Response({
-            'results': serializer.data
-        }, status=status.HTTP_200_OK)

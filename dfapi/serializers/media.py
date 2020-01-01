@@ -3,6 +3,7 @@ from rest_framework.serializers import ValidationError
 
 from ..models import Camera, VideoRecord, VideoThumb
 from .. import services
+from .abstracts import MaskFieldsSerializer
 
 
 class VideoThumbSerializer(serializers.ModelSerializer):
@@ -19,9 +20,13 @@ def video_path_validator(value):
         raise ValidationError(message)
 
 
-class VideoRecordSerializer(serializers.ModelSerializer):
+class VideoRecordSerializer(MaskFieldsSerializer):
 
-    path = serializers.CharField(write_only=True, validators=[video_path_validator])
+    path = serializers.CharField(
+        write_only=True,
+        validators=[video_path_validator],
+        help_text='The relative path of the video file.'
+    )
     url = serializers.CharField(read_only=True)
     thumbs = VideoThumbSerializer(many=True, read_only=True)
     running_tasks = serializers.IntegerField(read_only=True)
@@ -67,7 +72,7 @@ class VideoRecordSerializer(serializers.ModelSerializer):
         )
 
 
-class CameraSerializer(serializers.ModelSerializer):
+class CameraSerializer(MaskFieldsSerializer):
 
     stream_url = serializers.CharField()
     name = serializers.CharField()

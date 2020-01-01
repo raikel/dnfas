@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from .face import FaceSerializer
-from .abstracts import FieldMaskingSerializer
+from .abstracts import MaskFieldsSerializer
 from ..models import Subject, SubjectSegment, Camera, VideoRecord, Task, Face
 
 
-class SubjectSerializer(FieldMaskingSerializer):
+class SubjectSerializer(MaskFieldsSerializer):
 
     faces = FaceSerializer(many=True, read_only=True)
     full_name = serializers.CharField(read_only=True)
@@ -48,7 +48,7 @@ class SubjectEditSerializer(SubjectSerializer):
     )
 
 
-class SubjectSegmentSerializer(FieldMaskingSerializer):
+class SubjectSegmentSerializer(MaskFieldsSerializer):
 
     title = serializers.CharField(required=False, allow_blank=True)
     name = serializers.CharField(required=False, allow_blank=True)
