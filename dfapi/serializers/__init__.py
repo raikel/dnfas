@@ -1,4 +1,4 @@
-from .face import FaceSerializer, FacesSerializer, FrameSerializer
+from .face import FaceSerializer, FrameSerializer
 from .media import CameraSerializer, VideoRecordSerializer
 from .subject import SubjectSerializer, SubjectSegmentSerializer, SubjectEditSerializer
 from .task import TaskSerializer

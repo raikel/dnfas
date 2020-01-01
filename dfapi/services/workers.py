@@ -176,14 +176,20 @@ class TaskRunner(Thread):
         if task.schedule_stop_at is not None:
             se.video_stop_at = task.schedule_stop_at.timestamp()
 
-        if task.detection_min_size is not None:
-            se.detection_min_size = task.detection_min_size
+        if task.detection_min_height is not None:
+            se.detection_min_height = task.detection_min_height
+
+        if task.detection_min_score is not None:
+            se.detection_min_score = task.detection_min_score
 
         if task.similarity_thresh is not None:
             se.similarity_thresh = task.similarity_thresh
 
         if task.max_frame_size is not None:
             se.max_frame_size = task.max_frame_size
+
+        if task.frontal_faces is not None:
+            se.align_max_deviation = (0.4, 0.3)
 
         if task.video_detect_interval is not None:
             se.video_detect_interval = task.video_detect_interval

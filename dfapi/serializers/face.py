@@ -43,7 +43,7 @@ class NpArrayField(serializers.Field):
         return data_bytes
 
 
-class FramesSerializer(serializers.ModelSerializer):
+class FaceFrameSerializer(serializers.ModelSerializer):
 
     image = serializers.ImageField()
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
@@ -57,7 +57,7 @@ class FramesSerializer(serializers.ModelSerializer):
 class FaceSerializer(MaskFieldsSerializer):
 
     image = serializers.ImageField(required=False, allow_null=True)
-    frame = FramesSerializer(required=False, allow_null=True)
+    frame = FaceFrameSerializer(required=False, allow_null=True)
 
     box = serializers.ListSerializer(
         required=False,
@@ -112,7 +112,7 @@ class FaceSerializer(MaskFieldsSerializer):
         )
 
 
-class FacesSerializer(serializers.ModelSerializer):
+class FrameFaceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Face
@@ -120,11 +120,11 @@ class FacesSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'frame', 'image', 'box', 'subject')
 
 
-class FrameSerializer(serializers.ModelSerializer):
+class FrameSerializer(MaskFieldsSerializer):
 
     image = serializers.ImageField()
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
-    faces = FacesSerializer(many=True, read_only=True)
+    faces = FrameFaceSerializer(many=True, read_only=True)
 
     class Meta:
         model = Frame

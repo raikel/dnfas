@@ -1,8 +1,8 @@
-from rest_framework import serializers
+from .abstracts import MaskFieldsSerializer
 from ..models import Stat
 
 
-class StatSerializer(serializers.ModelSerializer):
+class StatSerializer(MaskFieldsSerializer):
 
     class Meta:
         model = Stat

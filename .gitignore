@@ -1,0 +1,12 @@
+syntax: glob
+.idea/
+.git/
+logs/
+recycle/
+storage/
+celerybeat-schedule
+clean_migrations.sh
+todos.txt
+*.sqlite3
+*.log
+__pycache__

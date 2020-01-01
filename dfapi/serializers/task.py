@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from ..models import Task, Subject
+from .abstracts import MaskFieldsSerializer
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class TaskSerializer(MaskFieldsSerializer):
 
     hunted_subjects = serializers.PrimaryKeyRelatedField(
         queryset=Subject.objects.all(),

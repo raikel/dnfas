@@ -11,7 +11,7 @@ from .mixins import (
     DestroyMixin
 )
 from ..models import Frame
-from ..serializers import FrameSerializer, FacesSerializer
+from ..serializers import FrameSerializer, FaceSerializer
 from ..services.faces import face_analyzer
 
 
@@ -65,7 +65,7 @@ class FrameView(
 
         serializer_context = {'request': request}
 
-        serializer = FacesSerializer(
+        serializer = FaceSerializer(
             faces,
             context=serializer_context,
             many=True

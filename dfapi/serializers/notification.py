@@ -1,8 +1,8 @@
-from rest_framework import serializers
+from .abstracts import MaskFieldsSerializer
 from ..models import Notification
 
 
-class NotificationSerializer(serializers.ModelSerializer):
+class NotificationSerializer(MaskFieldsSerializer):
 
     class Meta:
         model = Notification

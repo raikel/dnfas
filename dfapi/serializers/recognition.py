@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from .abstracts import MaskFieldsSerializer
 from ..models import Recognition, RecognitionMatch, SubjectSegment
 from .subject import SubjectSegmentSerializer, SubjectSerializer
 
@@ -21,7 +22,7 @@ class RecognitionMatchSerializer(serializers.ModelSerializer):
         )
 
 
-class RecognitionSerializer(serializers.ModelSerializer):
+class RecognitionSerializer(MaskFieldsSerializer):
     matches = RecognitionMatchSerializer(
         many=True,
         read_only=True

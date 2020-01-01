@@ -52,9 +52,11 @@ class Task(models.Model):
     mode = models.CharField(
         max_length=16, choices=MODE_CHOICES, blank=True, default=MODE_ALL
     )
-    detection_min_size = models.IntegerField(null=True, blank=True)
+    detection_min_height = models.IntegerField(null=True, blank=True)
+    detection_min_score = models.FloatField(null=True, blank=True)
     similarity_thresh = models.FloatField(null=True, blank=True)
     max_frame_size = models.IntegerField(null=True, blank=True)
+    frontal_faces = models.BooleanField(null=True, blank=True)
     video_detect_interval = models.FloatField(null=True, blank=True)
     faces_time_memory = models.FloatField(null=True, blank=True)
     store_face_frames = models.BooleanField(null=True, blank=True)
