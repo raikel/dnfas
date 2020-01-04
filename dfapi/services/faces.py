@@ -5,6 +5,7 @@ from os import path
 from queue import Empty as QueueEmptyError
 from queue import Full as QueueFullError
 import signal
+from django import db
 
 import cv2 as cv
 import numpy as np
@@ -137,7 +138,7 @@ def recognize_face(
 class FaceAnalyzer:
 
     MAX_QUEUE_SIZE = 1000
-    REQUEST_TIMEOUT = 10
+    REQUEST_TIMEOUT = 20
 
     TASK_ANALYZE_FACE = 'analyze_face'
     TASK_ANALYZE_FRAME = 'analyze_frame'
@@ -153,12 +154,14 @@ class FaceAnalyzer:
 
     def start_process(self):
         if self.process is None or not self.process.is_alive():
+            db.connections.close_all()
             self.process = Process(
                 target=execute_task,
                 kwargs={
                     'send_queue': self.recv_queue,
                     'recv_queue': self.send_queue,
-                }
+                },
+                daemon=True
             )
             self.process.start()
 
@@ -236,9 +239,9 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
         signal.signal(signal_key, _handle_signal)
 
     se = Settings()
-    se.detector_weights_path = settings.DNFAL_DETECTOR_WEIGHTS_PATH
-    se.marker_weights_path = settings.DNFAL_MARKER_WEIGHTS_PATH
-    se.encoder_weights_path = settings.DNFAL_ENCODER_WEIGHTS_PATH
+    se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
+    se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
+    se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
     se.align_max_deviation = None
     se.detection_min_scores = 0.9
     se.marking_min_score = 0

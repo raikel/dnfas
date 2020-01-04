@@ -16,15 +16,15 @@ from .views import (
 app_name = 'dfapi'
 
 router = SimpleRouter()
-router.register(r'subjects', SubjectView)
-router.register(r'cameras', CameraView)
-router.register(r'videos', VideoRecordView)
-router.register(r'tasks', TaskView)
-router.register(r'frames', FrameView)
-router.register(r'faces', FaceView, basename='faces')
-router.register(r'segments', SubjectSegmentView)
-router.register(r'stats', StatView)
-router.register(r'notifications', NotificationView)
-router.register(r'recognition', RecognitionView)
+router.register(r'subjects', SubjectView, 'subjects')
+router.register(r'cameras', CameraView, 'cameras')
+router.register(r'videos', VideoRecordView, 'videos')
+router.register(r'tasks', TaskView, 'tasks')
+router.register(r'frames', FrameView, 'frames')
+router.register(r'faces', FaceView, 'faces')
+router.register(r'segments', SubjectSegmentView, 'segments')
+router.register(r'stats', StatView, 'stats')
+router.register(r'notifications', NotificationView, 'notifications')
+router.register(r'recognition', RecognitionView, 'recognition')
 
 urlpatterns = router.urls

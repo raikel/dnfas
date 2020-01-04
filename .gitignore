@@ -6,7 +6,7 @@ recycle/
 storage/
 celerybeat-schedule
 clean_migrations.sh
-todos.txt
+gitpush.sh
 *.sqlite3
 *.log
 __pycache__

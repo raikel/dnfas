@@ -56,7 +56,7 @@ class FaceFrameSerializer(serializers.ModelSerializer):
 
 class FaceSerializer(MaskFieldsSerializer):
 
-    image = serializers.ImageField(required=False, allow_null=True)
+    image = serializers.ImageField(required=True, allow_null=True)
     frame = FaceFrameSerializer(required=False, allow_null=True)
 
     box = serializers.ListSerializer(
@@ -66,29 +66,29 @@ class FaceSerializer(MaskFieldsSerializer):
         read_only=True
     )
 
-    box_bytes = NpArrayField(
-        required=False,
-        allow_null=True,
-        dtype=np.float32,
-        shape=(4,),
-        write_only=True
-    )
-
-    landmarks_bytes = NpArrayField(
-        required=False,
-        allow_null=True,
-        dtype=np.float32,
-        shape=(-1, 2),
-        write_only=True
-    )
-
-    embeddings_bytes = NpArrayField(
-        required=False,
-        allow_null=True,
-        dtype=np.float32,
-        write_only=True,
-        shape=(-1, EMBEDDINGS_LENGTH)
-    )
+    # box_bytes = NpArrayField(
+    #     required=False,
+    #     allow_null=True,
+    #     dtype=np.float32,
+    #     shape=(4,),
+    #     write_only=True
+    # )
+    #
+    # landmarks_bytes = NpArrayField(
+    #     required=False,
+    #     allow_null=True,
+    #     dtype=np.float32,
+    #     shape=(-1, 2),
+    #     write_only=True
+    # )
+    #
+    # embeddings_bytes = NpArrayField(
+    #     required=False,
+    #     allow_null=True,
+    #     dtype=np.float32,
+    #     write_only=True,
+    #     shape=(-1, EMBEDDINGS_LENGTH)
+    # )
 
     class Meta:
         model = Face
@@ -97,9 +97,9 @@ class FaceSerializer(MaskFieldsSerializer):
             'frame',
             'image',
             'box',
-            'box_bytes',
-            'landmarks_bytes',
-            'embeddings_bytes',
+            # 'box_bytes',
+            # 'landmarks_bytes',
+            # 'embeddings_bytes',
             'subject',
             'created_at',
             'timestamp'
@@ -107,7 +107,6 @@ class FaceSerializer(MaskFieldsSerializer):
         read_only_fields = (
             'id',
             'created_at',
-            'task',
             'box'
         )
 

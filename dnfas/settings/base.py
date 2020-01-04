@@ -31,9 +31,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     'localhost',
-    '127.0.0.1',
-    '172.16.77.113',
-    '172.16.70.127'
+    '127.0.0.1'
 ]
 
 INTERNAL_IPS = [
@@ -167,9 +165,16 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-DNFAL_DETECTOR_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_detector.pth'
-DNFAL_MARKER_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_marker.npy'
-DNFAL_ENCODER_WEIGHTS_PATH = '/home/ronin/Projects/active/dnfal/models/weights_encoder.pth'
+DNFAL_MODELS_PATHS = {
+    'detector': 'weights_detector.pth',
+    'marker': 'weights_marker.npy',
+    'encoder': 'weights_encoder.pth'
+}
+
+for key, filename in DNFAL_MODELS_PATHS.items():
+    DNFAL_MODELS_PATHS[key] = os.path.join(
+        DATA_ROOT, MODELS_DATA_PATH, filename
+    )
 
 # Logging
 DNFAS_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfas.log'))

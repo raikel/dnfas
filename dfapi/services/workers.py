@@ -155,9 +155,9 @@ class TaskRunner(Thread):
 
         se = Settings()
 
-        se.detector_weights_path = settings.DNFAL_DETECTOR_WEIGHTS_PATH
-        se.marker_weights_path = settings.DNFAL_MARKER_WEIGHTS_PATH
-        se.encoder_weights_path = settings.DNFAL_ENCODER_WEIGHTS_PATH
+        se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
+        se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
+        se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
 
         if task.camera is not None and task.video is not None:
             raise ValueError('A Task can not have set both the camera and the video fields.')
