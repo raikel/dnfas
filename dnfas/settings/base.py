@@ -181,6 +181,8 @@ DNFAS_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfas.log'))
 DNFAL_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfal.log'))
 
 LOGGER_NAME = 'dnfas'
+LOGGER_FILE = os.path.realpath(os.path.join(BASE_DIR, 'dnfas.log'))
+LOGGER_FORMAT = '[{asctime}] {levelname} {module}:{lineno:d} "{message}"'
 
 LOGGING = {
     'version': 1,
@@ -195,7 +197,7 @@ LOGGING = {
     },
     'formatters': {
         'default': {
-            'format': '[{asctime}] {levelname} {module}:{funcName}:{lineno:d} "{message}"',
+            'format': LOGGER_FORMAT,
             'style': '{',
         }
     },
@@ -211,7 +213,7 @@ LOGGING = {
             'formatter': 'default',
             'class': 'logging.handlers.RotatingFileHandler',
             'filters': ['require_debug_false'],
-            'filename': DNFAS_LOG_FILE_PATH,
+            'filename': LOGGER_FILE,
             'maxBytes': 100 * 1024,
             'backupCount': 10
         },
