@@ -3,6 +3,10 @@ from django.conf import settings
 from django.utils import timezone
 import numpy as np
 
+# from os import path
+#
+# from ..services.faces import face_analyzer
+
 
 class Frame(models.Model):
     image = models.ImageField(upload_to=settings.FACES_IMAGES_PATH)
@@ -17,7 +21,7 @@ class Face(models.Model):
     landmarks_bytes = models.BinaryField(null=True, blank=True)
     embeddings_bytes = models.BinaryField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    size_bytes = models.IntegerField(blank=True, default=0)
+    size_bytes = models.IntegerField(blank=True, null=True)
     timestamp = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     frame = models.ForeignKey(
@@ -35,6 +39,21 @@ class Face(models.Model):
         on_delete=models.CASCADE,
         related_name='faces'
     )
+
+    # def save(self, *args, **kwargs):
+    #
+    #     if self.size_bytes is None:
+    #         self.size_bytes = self.image.size
+    #
+    #     if (
+    #         self.embeddings_bytes is None or
+    #         self.landmarks_bytes is None or
+    #         self.box_bytes is None
+    #     ):
+    #         if path.isfile(self.image.path):
+    #             face_analyzer.analyze_face(self.pk)
+    #
+    #     super().save(*args, **kwargs)
 
     @property
     def landmarks(self):

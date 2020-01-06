@@ -241,7 +241,7 @@ class SubjectSegment(models.Model):
         self.save()
 
     def is_outdated(self):
-        if not self.disk_cached:
+        if not self.disk_cached or not path.exists(self.full_model_path):
             return True
 
         last_subject = None

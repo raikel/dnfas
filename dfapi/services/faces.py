@@ -138,7 +138,7 @@ def recognize_face(
 class FaceAnalyzer:
 
     MAX_QUEUE_SIZE = 1000
-    REQUEST_TIMEOUT = 20
+    REQUEST_TIMEOUT = None # TODO
 
     TASK_ANALYZE_FACE = 'analyze_face'
     TASK_ANALYZE_FRAME = 'analyze_frame'

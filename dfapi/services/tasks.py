@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import Count
 from django.utils.timezone import make_aware
 
-from dfapi.models import Task, Worker
+from ..models import Task, Worker
 from .exceptions import ServiceError
 from .workers import RunnerManager, WorkerApi
 

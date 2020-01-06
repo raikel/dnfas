@@ -30,7 +30,7 @@ def delete_face_image_on_delete(sender, instance, **kwargs):
 
 
 @receiver(pre_save, sender=Face)
-def delete_face_image_on_change(sender, instance, **kwargs):
+def delete_face_image_on_change(sender, instance: Face, **kwargs):
     if not instance.pk:
         return False
 
@@ -41,6 +41,9 @@ def delete_face_image_on_change(sender, instance, **kwargs):
 
     new_file = instance.image
     if not old_file == new_file:
+        instance.box_bytes = None
+        instance.embeddings_bytes = None
+        instance.landmarks_bytes = None
         if os.path.isfile(old_file.path):
             os.remove(old_file.path)
 
@@ -56,9 +59,10 @@ def on_face_post_save(sender, instance: Face, **kwargs):
         del instance.dirty
         return
 
-    if instance.size_bytes == 0:
+    if instance.size_bytes is None:
         instance.dirty = True
         instance.size_bytes = instance.image.size
+        instance.save()
 
     if instance.frame is not None and instance.frame.size_bytes == 0:
         instance.frame.size_bytes = instance.frame.image.size
@@ -70,12 +74,9 @@ def on_face_post_save(sender, instance: Face, **kwargs):
         instance.box_bytes is None
     ):
         if os.path.isfile(instance.image.path):
-            instance.dirty = True
             face_analyzer.analyze_face(instance.pk)
             # instance = detect_face(instance)
 
-    if hasattr(instance, 'dirty'):
-        instance.save()
 
 
 @receiver(post_delete, sender=Frame)
