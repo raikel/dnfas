@@ -11,9 +11,10 @@ install:
   - pip install -r requirements_dev.txt
   - bash getmodels.sh
 env:
-  - DJANGO_SETTINGS_MODULE=dnfas.settings.testing
-  - PGUSER=postgres
-  - PGPASSWORD=''
+  global:
+    - DJANGO_SETTINGS_MODULE=dnfas.settings.testing
+    - PGUSER=postgres
+    - PGPASSWORD=''
 script:
   - bash test.sh
 after_success:
