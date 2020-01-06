@@ -3,11 +3,6 @@ from .base import *
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# Application definition
-INSTALLED_APPS = INSTALLED_APPS + [
-    'django_extensions',
-]
-
 # Database
 DATABASES = {
     'default': {
