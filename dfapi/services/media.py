@@ -30,6 +30,7 @@ def is_valid_video_path(rel_path):
         return f'File "{full_path}" does not exists.'
 
     video_capture = VideoCapture(full_path)
+    video_capture.open()
     if not video_capture.is_opened():
         return f'Video file "{full_path}" can not be opened.'
     video_capture.release()
@@ -60,6 +61,7 @@ def fill_video(instance: VideoRecord):
 
     full_path = instance.full_path
     video_capture = VideoCapture(full_path)
+    video_capture.open()
     if video_capture.is_opened():
         starts_at, finish_at = None, None
         filename = path.splitext(path.basename(instance.path))[0]
@@ -104,6 +106,7 @@ def create_video_thumbs(instance: VideoRecord):
 
     full_path = instance.full_path
     video_capture = VideoCapture(full_path)
+    video_capture.open()
     if video_capture.is_opened():
         thumbs_frames = []
         try:

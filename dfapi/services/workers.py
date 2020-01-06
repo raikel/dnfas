@@ -613,12 +613,13 @@ class WorkerApi:
                 logger.warning(f'Unable to login at "{login_url}"')
                 return
 
-        self._make_request(
-            url,
-            headers={
+        headers = None
+        if self.token is not None:
+            headers = {
                 'Authorization': f'Token {self.token}'
             }
-        )
+
+        self._make_request(url, headers=headers)
 
     @staticmethod
     def handle_error(response: Response):

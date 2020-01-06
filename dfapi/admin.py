@@ -153,7 +153,11 @@ class VideoRecordAdmin(admin.ModelAdmin):
         'frame_width',
         'frame_height',
         'duration_seconds',
-        'full_path'
+        'full_path',
+        'frames_count',
+        'processing_time',
+        'frame_rate',
+        'faces_count'
     )
     inlines = (VideoThumbInline,)
 

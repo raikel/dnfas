@@ -108,19 +108,19 @@ class TaskView(
 
     @action(detail=True, methods=['post'])
     def start(self, request, pk):
-        self._do_action(request, pk, 'start')
+        return self._do_action(request, pk, 'start')
 
     @action(detail=True, methods=['post'])
     def pause(self, request, pk):
-        self._do_action(request, pk, 'pause')
+        return self._do_action(request, pk, 'pause')
 
     @action(detail=True, methods=['post'])
     def resume(self, request, pk):
-        self._do_action(request, pk, 'resume')
+        return self._do_action(request, pk, 'resume')
 
     @action(detail=True, methods=['post'])
     def stop(self, request, pk):
-        self._do_action(request, pk, 'stop')
+        return self._do_action(request, pk, 'stop')
 
     def _do_action(self, request, pk, action_name):
         serializer_context = {'request': request}
