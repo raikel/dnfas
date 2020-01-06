@@ -155,6 +155,7 @@ class TaskRunner(Thread):
 
         se = Settings()
 
+        se.force_cpu = settings.DNFAL_FORCE_CPU
         se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
         se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
         se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']

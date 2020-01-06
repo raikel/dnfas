@@ -1,4 +1,6 @@
 language: python
+services:
+  - postgresql
 cache:
   pip: true
   directories:
@@ -8,7 +10,11 @@ python:
 install:
   - pip install -r requirements_dev.txt
   - bash getmodels.sh
+env:
+  - DJANGO_SETTINGS_MODULE=dnfas.settings.testing
+  - PGUSER=postgres
+  - PGPASSWORD=''
 script:
-  - coverage run --rcfile=.coveragerc manage.py test
+  - bash test.sh
 after_success:
   - codecov

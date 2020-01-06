@@ -165,6 +165,9 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+# Dnfal library
+DNFAL_FORCE_CPU = False
+
 DNFAL_MODELS_PATHS = {
     'detector': 'weights_detector.pth',
     'marker': 'weights_marker.npy',
@@ -177,7 +180,6 @@ for key, filename in DNFAL_MODELS_PATHS.items():
     )
 
 # Logging
-DNFAS_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfas.log'))
 DNFAL_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfal.log'))
 
 LOGGER_NAME = 'dnfas'
