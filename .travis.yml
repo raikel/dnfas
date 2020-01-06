@@ -4,7 +4,7 @@ services:
 cache:
   pip: true
   directories:
-    - models/
+    - storage/data/models/
 python:
   - "3.7"
 install:
@@ -15,7 +15,9 @@ env:
     - DJANGO_SETTINGS_MODULE=dnfas.settings.testing
     - PGUSER=postgres
     - PGPASSWORD=''
+before_script:
+  - bash dbinit.sh
 script:
-  - bash test.sh
+  - coverage run --rcfile=.coveragerc manage.py test --keepdb
 after_success:
   - codecov
