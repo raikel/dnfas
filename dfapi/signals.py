@@ -47,8 +47,6 @@ def delete_face_image_on_change(sender, instance: Face, **kwargs):
         if os.path.isfile(old_file.path):
             os.remove(old_file.path)
 
-    # TODO: when a face is updated and the image is change, update face data
-
 
 @receiver(post_save, sender=Face)
 def on_face_post_save(sender, instance: Face, **kwargs):

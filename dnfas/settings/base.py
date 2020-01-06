@@ -180,8 +180,6 @@ for key, filename in DNFAL_MODELS_PATHS.items():
     )
 
 # Logging
-DNFAL_LOG_FILE_PATH = os.path.realpath(os.path.join(BASE_DIR, 'logs/dnfal.log'))
-
 LOGGER_NAME = 'dnfas'
 LOGGER_FILE = os.path.realpath(os.path.join(BASE_DIR, 'dnfas.log'))
 LOGGER_FORMAT = '[{asctime}] {levelname} {module}:{lineno:d} "{message}"'

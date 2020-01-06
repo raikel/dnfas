@@ -138,7 +138,7 @@ def recognize_face(
 class FaceAnalyzer:
 
     MAX_QUEUE_SIZE = 1000
-    REQUEST_TIMEOUT = None # TODO
+    REQUEST_TIMEOUT = 30
 
     TASK_ANALYZE_FACE = 'analyze_face'
     TASK_ANALYZE_FRAME = 'analyze_frame'
@@ -251,8 +251,7 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
 
     if settings.DEBUG:
         se.log_to_console = True
-    else:
-        se.logging_file = settings.DNFAL_LOG_FILE_PATH
+
     se.video_capture_source = None
 
     faces_vision = FacesVision(se)
