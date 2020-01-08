@@ -19,6 +19,6 @@ env:
 before_script:
   - bash dbinit.sh
 script:
-  - coverage run --rcfile=.coveragerc manage.py test --keepdb
+  - coverage run --rcfile=.coveragerc manage.py test --keepdb -v 2
 after_success:
   - codecov

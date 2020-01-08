@@ -40,21 +40,6 @@ class Face(models.Model):
         related_name='faces'
     )
 
-    # def save(self, *args, **kwargs):
-    #
-    #     if self.size_bytes is None:
-    #         self.size_bytes = self.image.size
-    #
-    #     if (
-    #         self.embeddings_bytes is None or
-    #         self.landmarks_bytes is None or
-    #         self.box_bytes is None
-    #     ):
-    #         if path.isfile(self.image.path):
-    #             face_analyzer.analyze_face(self.pk)
-    #
-    #     super().save(*args, **kwargs)
-
     @property
     def landmarks(self):
         if self.landmarks_bytes is not None:

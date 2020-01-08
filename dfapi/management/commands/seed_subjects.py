@@ -16,7 +16,7 @@ logger = logging.getLogger(logger_name)
 
 IMAGES_PATH = '/home/ronin/Projects/datasets/faces/cplfw/'
 IMAGE_EXTS = ('_1.jpg',)
-NMAX_SUBJECTS = 10
+NMAX_SUBJECTS = 100
 
 
 def create_image(file_path, media_path):

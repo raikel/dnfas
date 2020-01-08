@@ -1,7 +1,6 @@
-import json
-from multiprocessing import Process
-from os import path
-from time import sleep
+from os import path, mkdir, system
+import shutil
+from datetime import timedelta
 from uuid import uuid4
 
 import numpy as np
@@ -13,15 +12,12 @@ from faker import Faker
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITransactionTestCase
-from django import db
 
 from ..models import (
     Face,
     Frame,
-    Subject
-)
-from ..serializers import (
-    FaceSerializer
+    Subject,
+    VideoRecord
 )
 
 FAKER = Faker()
@@ -29,6 +25,30 @@ FAKER = Faker()
 CURR_DIR = path.abspath(path.dirname(__file__))
 FACE_IMAGE_PATH = path.join(CURR_DIR, 'data/face.jpg')
 FRAME_IMAGE_PATH = path.join(CURR_DIR, 'data/frame.jpg')
+VIDEO_PATH = path.join(CURR_DIR, 'data/video.mp4')
+
+
+class ModelFactory:
+
+    model_cls = None
+    MODEL_REQUIRED_FIELDS = []
+    API_REQUIRED_FIELDS = []
+    API_READ_FIELDS = []
+
+    def create_instance(self, full: bool = True):
+        data = self.instance_data()
+        if not full:
+            data = filter_keys(data, self.MODEL_REQUIRED_FIELDS)
+        return self.model_cls.objects.create(**data)
+
+    def instance_data(self):
+        return {}
+
+    def api_post_data(self, full: bool = True):
+        data = {}
+        if not full:
+            return filter_keys(data, self.API_REQUIRED_FIELDS)
+        return data
 
 
 def filter_keys(data: dict, keys: list):
@@ -36,33 +56,65 @@ def filter_keys(data: dict, keys: list):
     for key in keys:
         if key in data.keys():
             data_filtered[key] = data[key]
-    return  data_filtered
+    return data_filtered
 
 
-class ImageFactory:
-
-    @staticmethod
-    def create(file_path, media_path):
-        image_name = f'face_{uuid4()}.jpg'
-        rel_path = path.join(media_path, image_name)
-        full_path = path.join(settings.MEDIA_ROOT, rel_path)
-        image = cv.imread(file_path)
-        cv.imwrite(full_path, image)
-        return rel_path
+def create_video_file(file_path, media_path):
+    _, ext = path.splitext(file_path)
+    video_name = f'video_{uuid4()}{ext}'
+    video_dir = path.join(settings.MEDIA_ROOT, media_path)
+    if not path.exists(video_dir):
+        mkdir(video_dir)
+    shutil.copy2(file_path, path.join(video_dir, video_name))
+    return video_name
 
 
-class FrameFactory:
+def create_image_file(file_path, media_path):
+    image_name = f'face_{uuid4()}.jpg'
+    rel_path = path.join(media_path, image_name)
+    full_path = path.join(settings.MEDIA_ROOT, rel_path)
+    image = cv.imread(file_path)
+    cv.imwrite(full_path, image)
+    return rel_path
 
-    @staticmethod
-    def create():
-        frame = Frame.objects.create(
-            image=ImageFactory.create(
+
+class FrameFactory(ModelFactory):
+
+    model_cls = Frame
+    MODEL_REQUIRED_FIELDS = ['image']
+    API_REQUIRED_FIELDS = ['image']
+    API_READ_FIELDS = [
+        'id',
+        'image',
+        'timestamp',
+        'faces'
+    ]
+
+    def instance_data(self):
+        return dict(
+            image=create_image_file(
                 FRAME_IMAGE_PATH,
                 settings.FACES_IMAGES_PATH
             ),
             timestamp=timezone.now()
         )
-        return frame
+
+    def api_post_data(self, full: bool = True):
+        with open(FRAME_IMAGE_PATH, 'rb') as image_file:
+            image = SimpleUploadedFile(
+                'frame.jpg',
+                image_file.read(),
+                content_type="image/[jpg,png,gif]"
+            )
+            data = {
+                'image': image,
+                'timestamp': timezone.now()
+            }
+
+        if not full:
+            return filter_keys(data, self.API_REQUIRED_FIELDS)
+
+        return data
 
 
 class SubjectFactory:
@@ -80,24 +132,26 @@ class SubjectFactory:
         )
 
 
-class FaceFactory:
+class FaceFactory(ModelFactory):
 
-    model = Face
+    model_cls = Face
     MODEL_REQUIRED_FIELDS = []
     API_REQUIRED_FIELDS = ['image']
+    API_READ_FIELDS = [
+        'id',
+        'image',
+        'frame',
+        'box',
+        'subject',
+        'created_at',
+        'timestamp'
+    ]
 
-    @staticmethod
-    def create_instance(full: bool = True):
-        data = FaceFactory.instance_data()
-        if not full:
-            data = filter_keys(data, FaceFactory.MODEL_REQUIRED_FIELDS)
-        return Face.objects.create(**data)
-
-    @staticmethod
-    def instance_data():
+    def instance_data(self):
+        frame_factory = FrameFactory()
         return dict(
-            frame=FrameFactory.create(),
-            image=ImageFactory.create(
+            frame=frame_factory.create_instance(),
+            image=create_image_file(
                 FACE_IMAGE_PATH,
                 settings.FACES_IMAGES_PATH
             ),
@@ -108,8 +162,7 @@ class FaceFactory:
             timestamp=timezone.now()
         )
 
-    @staticmethod
-    def api_post_data(full: bool = True):
+    def api_post_data(self, full: bool = True):
         with open(FACE_IMAGE_PATH, 'rb') as image_file:
             image = SimpleUploadedFile(
                 'face.jpg',
@@ -122,7 +175,55 @@ class FaceFactory:
             }
 
         if not full:
-            return filter_keys(data, FaceFactory.API_REQUIRED_FIELDS)
+            return filter_keys(data, self.API_REQUIRED_FIELDS)
+
+        return data
+
+
+class VideoFactory(ModelFactory):
+
+    model_cls = VideoRecord
+    MODEL_REQUIRED_FIELDS = ['path']
+    API_REQUIRED_FIELDS = ['path']
+    API_READ_FIELDS = [
+        'id',
+        'starts_at',
+        'finish_at',
+        'created_at',
+        'updated_at',
+        'frame_width',
+        'frame_height',
+        'duration_seconds',
+        'size',
+        'url',
+        'thumbs',
+        'running_tasks',
+        'frames_count',
+        'processing_time',
+        'frame_rate',
+        'faces_count',
+        'last_task_at'
+    ]
+
+    def instance_data(self):
+        return dict(
+            path=create_video_file(VIDEO_PATH, settings.VIDEO_RECORDS_PATH),
+            starts_at=timezone.now(),
+            finish_at=timezone.now() + timedelta(seconds=60)
+        )
+
+    def api_post_data(self, full: bool = True):
+        data = {
+            'path': create_video_file(
+                VIDEO_PATH,
+                settings.VIDEO_RECORDS_PATH
+            ),
+            'starts_at': timezone.now(),
+            'finish_at': timezone.now() + timedelta(seconds=60)
+        }
+
+        if not full:
+            return filter_keys(data, self.API_REQUIRED_FIELDS)
 
         return data
 
@@ -131,8 +232,7 @@ class _ViewTest(APITransactionTestCase):
 
     url_list = ''
     url_detail = ''
-    serializer_class = None
-    model_factory = None
+    model_factory: ModelFactory = None
     list_count = 5
 
     def setUp(self):
@@ -143,17 +243,17 @@ class _ViewTest(APITransactionTestCase):
             'Minimal data': self.model_factory.api_post_data(full=False)
         }
 
-        # self.instances = [
-        #     self.model_factory.create_instance()
-        #     for n in range(self.list_count)
-        # ]
+        self.instances = [
+            self.model_factory.create_instance()
+            for n in range(self.list_count)
+        ]
 
-    def get_all_instances(self):
-        return self.model_factory.model.objects.all()
+    def list_instances(self):
+        return self.model_factory.model_cls.objects.all()
 
 
 # noinspection PyUnresolvedReferences
-class _MixinViewCreateTest():
+class _MixinViewCreateTest:
 
     def test_create(self):
         for label, data in self.valid_data.items():
@@ -169,118 +269,158 @@ class _MixinViewCreateTest():
                 )
 
 
-# class _ViewTest(APITestCase):
-#
-#     url_list = ''
-#     url_detail = ''
-#
-#     serializer_class = None
-#
-#     def setUp(self):
-#         self.valid_data = {}
-#         self.invalid_data = {}
-#         self.instances = []
-#
-#     def get_all_instances(self):
-#         return []
-#
-#     def test_create_valid(self):
-#         for label, data in self.valid_data.items():
-#             with self.subTest(msg=label):
-#                 response = self.client.post(
-#                     reverse(self.url_list),
-#                     data=data
-#                 )
-#                 self.assertEqual(
-#                     status.HTTP_201_CREATED,
-#                     response.status_code,
-#                     msg=repr(response.data)
-#                 )
-#
-#     def test_create_invalid(self):
-#         for label, data in self.invalid_data.items():
-#             with self.subTest(msg=label):
-#                 response = self.client.post(
-#                     reverse(self.url_list),
-#                     data=data
-#                 )
-#                 self.assertEqual(
-#                     status.HTTP_400_BAD_REQUEST,
-#                     response.status_code,
-#                     msg=repr(response.data)
-#                 )
-#
-#     def test_list_all(self):
-#         response = self.client.get(reverse(self.url_list))
-#         instances = self.get_all_instances()
-#         serializer = self.serializer_class(instances, many=True)
-#         self.assertEqual(response.data['results'], serializer.data)
-#         self.assertEqual(
-#             response.status_code,
-#             status.HTTP_200_OK,
-#             msg=repr(response.data)
-#         )
-#
-#     def test_retrieve_valid(self):
-#         instance = self.instances[0]
-#         response = self.client.get(
-#             reverse(self.url_detail, kwargs={'pk': instance.pk})
-#         )
-#         serializer = self.serializer_class(instance)
-#         self.assertEqual(response.data, serializer.data)
-#         self.assertEqual(
-#             response.status_code,
-#             status.HTTP_200_OK,
-#             msg=repr(response.data)
-#         )
-#
-#     def test_retrieve_invalid(self):
-#         response = self.client.get(
-#             reverse(self.url_detail, kwargs={'pk': -1})
-#         )
-#         self.assertEqual(
-#             response.status_code,
-#             status.HTTP_404_NOT_FOUND,
-#             msg=repr(response.data)
-#         )
-#
-#     def test_update_valid(self):
-#         instance = self.instances[0]
-#         for label, data in self.valid_data.items():
-#             with self.subTest(msg=label):
-#                 response = self.client.patch(
-#                     reverse(self.url_detail, kwargs={'pk': instance.pk}),
-#                     data=json.dumps(data),
-#                     content_type='application/json'
-#                 )
-#                 self.assertEqual(
-#                     status.HTTP_200_OK,
-#                     response.status_code,
-#                     msg=repr(response.data)
-#                 )
-#
-#     def test_delete_valid(self):
-#         instance = self.instances[0]
-#         response = self.client.delete(
-#             reverse(self.url_detail, kwargs={'pk': instance.pk})
-#         )
-#         self.assertEqual(
-#             response.status_code,
-#             status.HTTP_204_NO_CONTENT,
-#             msg=repr(response.data)
-#         )
-#
-#     def test_invalid_delete(self):
-#         response = self.client.delete(
-#             reverse(self.url_detail, kwargs={'pk': -1})
-#         )
-#         self.assertEqual(
-#             response.status_code,
-#             status.HTTP_404_NOT_FOUND,
-#             msg=repr(response.data)
-#         )
+# noinspection PyUnresolvedReferences
+class _MixinViewListTest:
+
+    def test_list(self):
+        response = self.client.get(reverse(self.url_list))
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+            msg=repr(response.data)
+        )
+        data = response.data['results']
+        for index, item in enumerate(data):
+            with self.subTest(msg=f'List index {index}'):
+                self.assertSetEqual(
+                    set(self.model_factory.API_READ_FIELDS),
+                    set(item.keys())
+                )
+
+
+# noinspection PyUnresolvedReferences
+class _MixinViewDeleteTest:
+
+    def test_delete(self):
+        for instance in self.instances:
+            with self.subTest(msg=f'Model pk={instance.pk}'):
+                response = self.client.delete(
+                    reverse(self.url_detail, kwargs={'pk': instance.pk})
+                )
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_204_NO_CONTENT,
+                    msg=repr(response.data)
+                )
+
+
+# noinspection PyUnresolvedReferences
+class _MixinViewRetrieveTest:
+
+    def test_retrieve(self):
+        for instance in self.instances:
+            with self.subTest(msg=f'Model pk={instance.pk}'):
+                response = self.client.get(
+                    reverse(self.url_detail, kwargs={'pk': instance.pk})
+                )
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_200_OK,
+                    msg=repr(response.data)
+                )
+                self.assertSetEqual(
+                    set(self.model_factory.API_READ_FIELDS),
+                    set(response.data.keys())
+                )
+
+
+# noinspection PyUnresolvedReferences
+class _MixinViewUpdateTest:
+
+    def test_update(self):
+        instance = self.instances[0]
+        for label, data in self.valid_data.items():
+            with self.subTest(msg=label):
+                response = self.client.patch(
+                    reverse(self.url_detail, kwargs={'pk': instance.pk}),
+                    data=data
+                )
+                self.assertEqual(
+                    status.HTTP_200_OK,
+                    response.status_code,
+                    msg=repr(response.data)
+                )
+                self.assertSetEqual(
+                    set(self.model_factory.API_READ_FIELDS),
+                    set(response.data.keys())
+                )
+
+
+class FaceViewTest(
+    _ViewTest,
+    _MixinViewCreateTest,
+    _MixinViewListTest,
+    _MixinViewRetrieveTest,
+    _MixinViewUpdateTest,
+    _MixinViewDeleteTest
+):
+
+    url_list = 'dfapi:faces-list'
+    url_detail = 'dfapi:faces-detail'
+    model_factory = FaceFactory()
+
+
+class FrameViewTest(
+    _ViewTest,
+    _MixinViewCreateTest,
+    _MixinViewListTest,
+    _MixinViewRetrieveTest,
+    _MixinViewUpdateTest,
+    _MixinViewDeleteTest
+):
+
+    url_list = 'dfapi:frames-list'
+    url_detail = 'dfapi:frames-detail'
+    url_detect_faces = 'dfapi:frames-detect-faces'
+    model_factory = FrameFactory()
+
+    def test_detect_faces(self):
+        instance = self.instances[0]
+        response = self.client.post(
+            reverse(self.url_detect_faces, kwargs={'pk': instance.pk})
+        )
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_200_OK,
+            msg=repr(response.data)
+        )
+        face_factory = FaceFactory()
+        for index, item in enumerate(response.data):
+            with self.subTest(msg=f'List index {index}'):
+                self.assertSetEqual(
+                    set(face_factory.API_READ_FIELDS),
+                    set(item.keys())
+                )
+
+
+class VideoViewTest(
+    _ViewTest,
+    _MixinViewCreateTest,
+    _MixinViewListTest,
+    _MixinViewRetrieveTest,
+    _MixinViewUpdateTest,
+    _MixinViewDeleteTest
+):
+
+    url_list = 'dfapi:videos-list'
+    url_detail = 'dfapi:videos-detail'
+    model_factory = VideoFactory()
+    list_count = 1
+
+
+del (
+    _ViewTest,
+    _MixinViewCreateTest,
+    _MixinViewListTest,
+    _MixinViewRetrieveTest,
+    _MixinViewUpdateTest,
+    _MixinViewDeleteTest
+)
 
 # from django.test import TestCase, TransactionTestCase
+# from multiprocessing import Process
+# from time import sleep
+# from django import db
 #
 # def execute_task():
 #     print('Process started')
@@ -301,14 +441,3 @@ class _MixinViewCreateTest():
 #         face_2 = FaceFactory.create_instance()
 #         print('Face 2 created')
 #         sleep(10)
-
-
-class FaceViewTest(_ViewTest,_MixinViewCreateTest):
-
-    url_list = 'dfapi:faces-list'
-    url_detail = 'dfapi:faces-detail'
-    serializer_class = FaceSerializer
-    model_factory = FaceFactory
-
-
-del _ViewTest, _MixinViewCreateTest

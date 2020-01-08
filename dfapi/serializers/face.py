@@ -66,40 +66,13 @@ class FaceSerializer(MaskFieldsSerializer):
         read_only=True
     )
 
-    # box_bytes = NpArrayField(
-    #     required=False,
-    #     allow_null=True,
-    #     dtype=np.float32,
-    #     shape=(4,),
-    #     write_only=True
-    # )
-    #
-    # landmarks_bytes = NpArrayField(
-    #     required=False,
-    #     allow_null=True,
-    #     dtype=np.float32,
-    #     shape=(-1, 2),
-    #     write_only=True
-    # )
-    #
-    # embeddings_bytes = NpArrayField(
-    #     required=False,
-    #     allow_null=True,
-    #     dtype=np.float32,
-    #     write_only=True,
-    #     shape=(-1, EMBEDDINGS_LENGTH)
-    # )
-
     class Meta:
         model = Face
         fields = (
             'id',
-            'frame',
             'image',
+            'frame',
             'box',
-            # 'box_bytes',
-            # 'landmarks_bytes',
-            # 'embeddings_bytes',
             'subject',
             'created_at',
             'timestamp'

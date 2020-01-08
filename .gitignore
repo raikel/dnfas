@@ -7,6 +7,7 @@ storage/
 celerybeat-schedule
 clean_migrations.sh
 gitpush.sh
+TODOS.md
 *.sqlite3
 *.log
 __pycache__

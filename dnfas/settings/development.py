@@ -34,13 +34,3 @@ REST_FRAMEWORK.update({
 
 # Enable CORS for all domains
 CORS_ORIGIN_ALLOW_ALL = True
-
-# Logging
-# LOGGING.update({
-#     'loggers': {
-#         'dfapi': {
-#             'level': 'DEBUG',
-#             'handlers': ['console'],
-#         },
-#     }
-# })

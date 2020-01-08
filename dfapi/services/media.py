@@ -20,22 +20,25 @@ def is_valid_video_path(rel_path):
 
     try:
         VideoRecord.objects.get(path=rel_path)
-        return f'A video with the path "{rel_path}" already exists.'
+        msg = f'A video with the path "{rel_path}" already exists.'
+        return False, msg
     except ObjectDoesNotExist:
         pass
 
     full_path = path.join(settings.MEDIA_ROOT, settings.VIDEO_RECORDS_PATH, rel_path)
 
     if not path.isfile(full_path):
-        return f'File "{full_path}" does not exists.'
+        msg = f'File "{full_path}" does not exists.'
+        return False, msg
 
     video_capture = VideoCapture(full_path)
     video_capture.open()
     if not video_capture.is_opened():
-        return f'Video file "{full_path}" can not be opened.'
+        msg = f'Video file "{full_path}" can not be opened.'
+        return False, msg
     video_capture.release()
 
-    return ''
+    return True, ''
 
 
 def load_videos(dir_path):
@@ -48,16 +51,16 @@ def load_videos(dir_path):
 
     for file_path in file_paths:
         rel_path = path.relpath(file_path, root_dir)
-        error = is_valid_video_path(rel_path)
-        if not error:
+        valid, msg = is_valid_video_path(rel_path)
+        if valid:
             VideoRecord.objects.create(path=rel_path)
 
 
 def fill_video(instance: VideoRecord):
 
-    error = is_valid_video_path(instance.path)
-    if error:
-        raise ValidationError(error)
+    valid, msg = is_valid_video_path(instance.path)
+    if not valid:
+        raise ValidationError(msg)
 
     full_path = instance.full_path
     video_capture = VideoCapture(full_path)

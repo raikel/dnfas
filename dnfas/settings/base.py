@@ -122,7 +122,6 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'storage/media'))
 DATA_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'storage/data'))
-VIDEO_ROOT = os.path.realpath(os.path.join(MEDIA_ROOT, 'video'))
 
 VIDEO_RECORDS_PATH = 'video/'
 VIDEO_THUMBS_PATH = 'video/thumbs'

@@ -15,9 +15,9 @@ class VideoThumbSerializer(serializers.ModelSerializer):
 
 
 def video_path_validator(value):
-    message = services.media.is_valid_video_path(value)
-    if message:
-        raise ValidationError(message)
+    valid, msg = services.media.is_valid_video_path(value)
+    if not valid:
+        raise ValidationError(msg)
 
 
 class VideoRecordSerializer(MaskFieldsSerializer):
@@ -63,12 +63,17 @@ class VideoRecordSerializer(MaskFieldsSerializer):
             'url',
             'created_at',
             'updated_at',
+            'frame_width',
+            'frame_height',
+            'duration_seconds',
+            'size',
+            'thumbs',
             'running_tasks',
             'frames_count',
             'processing_time',
             'frame_rate',
             'faces_count',
-            'last_task_at'
+            'last_task_at',
         )
 
 
