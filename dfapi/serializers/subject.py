@@ -10,7 +10,7 @@ class SubjectSerializer(MaskFieldsSerializer):
     full_name = serializers.CharField(read_only=True)
     age = serializers.IntegerField(read_only=True)
     last_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    birthdate = serializers.DateField(input_formats=['%m/%d/%Y'], required=False, allow_null=True)
+    birthdate = serializers.DateField(required=False, allow_null=True)
     sex = serializers.CharField(required=False, allow_blank=True)
     skin = serializers.CharField(required=False, allow_blank=True)
 
@@ -50,14 +50,27 @@ class SubjectEditSerializer(SubjectSerializer):
 
 class SubjectSegmentSerializer(MaskFieldsSerializer):
 
-    title = serializers.CharField(required=False, allow_blank=True)
-    name = serializers.CharField(required=False, allow_blank=True)
+    disk_cached = serializers.BooleanField(
+        allow_null=True,
+        required=False,
+        help_text='Indicates if linked train data if stored in disk.'
+    )
+
+    title = serializers.CharField(
+        help_text='The segment title.'
+    )
+
+    name = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
+
     naming = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
-    min_age = serializers.IntegerField(required=False, allow_null=True)
-    max_age = serializers.IntegerField(required=False, allow_null=True)
-    min_timestamp = serializers.DateField(required=False, allow_null=True)
-    max_timestamp = serializers.DateField(required=False, allow_null=True)
+    min_age = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=100)
+    max_age = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=100)
+    min_timestamp = serializers.DateTimeField(required=False, allow_null=True)
+    max_timestamp = serializers.DateTimeField(required=False, allow_null=True)
     sex = serializers.CharField(required=False, allow_blank=True)
     skin = serializers.CharField(required=False, allow_blank=True)
     count = serializers.IntegerField(read_only=True)
@@ -82,10 +95,25 @@ class SubjectSegmentSerializer(MaskFieldsSerializer):
 
     class Meta:
         model = SubjectSegment
-        fields = '__all__'
+        fields = (
+            'id',
+            'disk_cached',
+            'title',
+            'name',
+            'naming',
+            'last_name',
+            'min_age',
+            'max_age',
+            'min_timestamp',
+            'max_timestamp',
+            'sex',
+            'skin',
+            'count',
+            'cameras',
+            'videos',
+            'tasks'
+        )
         read_only_fields = (
             'id',
-            'count',
-            'camera',
-            'video'
+            'count'
         )

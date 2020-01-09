@@ -58,16 +58,18 @@ class RecognitionSerializer(MaskFieldsSerializer):
         )
 
     def create(self, validated_data):
-        segment = None
-        segment_data = validated_data.pop('filter')
-        if len(segment_data):
-            segment_serializer = SubjectSegmentSerializer(
-                data=segment_data,
-                context=self.context
-            )
-            segment_serializer.is_valid(raise_exception=True)
-            segment = segment_serializer.save()
+        try:
+            filter_data = validated_data.pop('filter')
+        except KeyError:
+            pass
+        else:
+            if len(filter_data):
+                segment_serializer = SubjectSegmentSerializer(
+                    data=filter_data,
+                    context=self.context
+                )
+                segment_serializer.is_valid(raise_exception=True)
+                segment = segment_serializer.save()
+                validated_data['filter_id'] = segment.pk
 
-        if segment is not None:
-            validated_data['filter_id'] = segment.pk
         return super().create(validated_data)

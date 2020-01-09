@@ -165,7 +165,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # Dnfal library
-DNFAL_FORCE_CPU = False
+DNFAL_FORCE_CPU = os.getenv('DNFAL_FORCE_CPU', 'False') == 'True'
 
 DNFAL_MODELS_PATHS = {
     'detector': 'weights_detector.pth',

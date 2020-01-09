@@ -34,6 +34,3 @@ for media_path in MEDIA_PATHS:
     full_path = path.join(MEDIA_ROOT, media_path)
     if not path.exists(full_path):
         mkdir(full_path)
-
-# Dnfal library
-DNFAL_FORCE_CPU = True

@@ -129,15 +129,23 @@ class SubjectSegment(models.Model):
         (NAMING_ALL, ''),
     ]
 
-    disk_cached = models.BooleanField(blank=True, default=False)
-    title = models.CharField(max_length=255, blank=True)
+    disk_cached = models.BooleanField(
+        blank=True,
+        default=False,
+        help_text='Indicates if linked train data if stored in disk.'
+    )
+    title = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='The segment title.'
+    )
     name = models.CharField(max_length=255, blank=True)
     naming = models.CharField(max_length=16, blank=True, choices=NAMING_CHOICES, default=NAMING_ALL)
     last_name = models.CharField(max_length=255, blank=True)
     min_birthdate = models.DateField(blank=True, null=True)
     max_birthdate = models.DateField(blank=True, null=True)
-    min_timestamp = models.DateField(blank=True, null=True)
-    max_timestamp = models.DateField(blank=True, null=True)
+    min_timestamp = models.DateTimeField(blank=True, null=True)
+    max_timestamp = models.DateTimeField(blank=True, null=True)
     sex = models.CharField(max_length=255, blank=True)
     skin = models.CharField(max_length=255, blank=True)
     count = models.IntegerField(default=0)

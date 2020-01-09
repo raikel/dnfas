@@ -140,6 +140,12 @@ def subject_segment_post_save(sender, instance: SubjectSegment = None, **kwargs)
         instance.update_data()
 
 
+@receiver(post_delete, sender=SubjectSegment)
+def delete_frame_image_on_delete(sender, instance: SubjectSegment, **kwargs):
+    if instance is not None and os.path.isfile(instance.full_model_path):
+        os.remove(instance.full_model_path)
+
+
 @receiver(post_delete, sender=Task)
 def task_post_delete(sender, instance: Task, **kwargs):
     if instance:

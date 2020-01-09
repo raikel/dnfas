@@ -25,6 +25,6 @@ router.register(r'faces', FaceView, 'faces')
 router.register(r'segments', SubjectSegmentView, 'segments')
 router.register(r'stats', StatView, 'stats')
 router.register(r'notifications', NotificationView, 'notifications')
-router.register(r'recognition', RecognitionView, 'recognition')
+router.register(r'recognition', RecognitionView, 'recognitions')
 
 urlpatterns = router.urls

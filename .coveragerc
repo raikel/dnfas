@@ -7,6 +7,5 @@ include =
 [report]
 ignore_errors = True
 omit =
-    dfapi/tests/*
-    sysinf/tests/*
-    users/tests/*
+    */tests/*
+    */migrations/*
