@@ -1,10 +1,10 @@
-from os import path, mkdir, system
 import shutil
 from datetime import timedelta
+from os import path, mkdir
 from uuid import uuid4
 
-import numpy as np
 import cv2 as cv
+import numpy as np
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.utils import timezone

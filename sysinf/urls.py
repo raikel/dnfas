@@ -5,5 +5,5 @@ from .views import SystemStatsView
 app_name = 'sysinf'
 
 urlpatterns = [
-    path('system/', SystemStatsView.as_view())
+    path('system/', SystemStatsView.as_view(), name='system')
 ]
