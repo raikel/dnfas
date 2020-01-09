@@ -1,6 +1,7 @@
 import warnings
 import psutil
 import gpustat
+from pynvml import NVMLError
 
 MB = 1024 * 1024
 
@@ -10,7 +11,18 @@ def cpu(interval=0.5):
 
 
 def gpu():
-    query = gpustat.new_query()
+    try:
+        query = gpustat.new_query()
+    except NVMLError:
+        return [{
+            'name': 'GPU not available',
+            'temperature': 0,
+            'fan_speed': 0,
+            'utilization': 0,
+            'memory_used': 0,
+            'memory_total': 0,
+            'power_draw': 0,
+        }]
     return [{
         'name': gpu.name,
         'temperature': gpu.temperature,
