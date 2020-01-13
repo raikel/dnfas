@@ -14,11 +14,10 @@ import os
 from celery.schedules import crontab
 
 # Unique name of this server in a cluster of servers, case insensitive
-WORKER_NAME = 'master'
+WORKER_NAME = os.environ.get('DNFAS_WORKER_NAME', 'master')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SPA_DIR = '/home/ronin/Projects/active/dnfas-ui/dist/'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -71,7 +70,7 @@ ROOT_URLCONF = 'dnfas.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [SPA_DIR],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -85,6 +84,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'dnfas.wsgi.application'
+
+# Database
+# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.environ['DNFAS_DB_NAME'],
+        'USER': os.environ['DNFAS_DB_USER'],
+        'PASSWORD': os.environ['DNFAS_DB_PASSWORD'],
+        'HOST': os.environ['DNFAS_DB_HOST'],
+        'PORT': '',
+    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
@@ -104,9 +116,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'storage/static'))
-STATICFILES_DIRS = [
-  os.path.realpath(os.path.join(SPA_DIR, 'static')),
-]
+
 # Tell Django about the custom `User` model we created. The string
 # `users.User` tells Django we are referring to the `User` model in
 # the `users` app. This module is registered above in a setting
@@ -127,6 +137,25 @@ VIDEO_RECORDS_PATH = 'video/'
 VIDEO_THUMBS_PATH = 'video/thumbs'
 FACES_IMAGES_PATH = 'faces/'
 MODELS_DATA_PATH = 'models/'
+
+MEDIA_PATHS = [
+    VIDEO_RECORDS_PATH,
+    VIDEO_THUMBS_PATH,
+    FACES_IMAGES_PATH
+]
+
+for media_path in MEDIA_PATHS:
+    full_path = os.path.join(MEDIA_ROOT, media_path)
+    os.makedirs(full_path, exist_ok=True)
+
+DATA_PATHS = [
+    MODELS_DATA_PATH
+]
+
+for data_path in DATA_PATHS:
+    full_path = os.path.join(DATA_ROOT, data_path)
+    os.makedirs(full_path, exist_ok=True)
+
 
 VIDEO_THUMBS_COUNT = 5
 VIDEO_THUMBS_SIZE = 256

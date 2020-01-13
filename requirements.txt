@@ -1,5 +1,5 @@
 opencv-python>=4.1.0.25
-dnfal>=0.1.0
+dnfal>=0.3.0
 numpy>=1.16.0
 gpustat>=0.6.0
 requests>=2.22.0

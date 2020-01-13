@@ -1,21 +1,20 @@
 from .base import *
+import os
+
+SPA_DIR = os.environ.get('DNFAS_SPA_DIR', '')
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ['DNFAS_SECRET_KEY']
 
 DEBUG = False
 
 MIDDLEWARE.remove('corsheaders.middleware.CorsMiddleware')
 
-# Database
-# https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'dnfas',
-        'USER': 'dnfas',
-        'PASSWORD': '123',
-        'HOST': 'localhost',
-        'PORT': '',
-    }
-}
+TEMPLATES[0]['DIRS'] = [SPA_DIR]
+
+STATICFILES_DIRS = [
+  os.path.realpath(os.path.join(SPA_DIR, 'static')),
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
@@ -51,13 +50,3 @@ CORS_ORIGIN_ALLOW_ALL = True
 # CORS_ORIGIN_WHITELIST = (
 #     'http://localhost',
 # )
-
-# Logging
-# LOGGING.update({
-#     'loggers': {
-#         'dfapi': {
-#             'level': 'INFO',
-#             'handlers': ['file'],
-#         },
-#     }
-# })

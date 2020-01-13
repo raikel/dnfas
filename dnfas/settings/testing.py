@@ -1,23 +1,13 @@
 from .development import *
-from os import path, mkdir
+import os
 
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'dnfas_test',
-        'USER': 'dnfas_test',
-        'PASSWORD': 'dnfas_test',
-        'HOST': 'localhost',
-        'PORT': '',
-        'TEST': {
-            'NAME': 'dnfas_test'
-        }
-    }
+DATABASES['default']['TEST'] = {
+    'NAME': os.environ['DNFAS_DB_NAME']
 }
 
-MEDIA_ROOT = path.realpath(path.join(BASE_DIR, 'storage/testing'))
+MEDIA_ROOT = os.path.realpath(os.path.join(BASE_DIR, 'storage/testing'))
 DATA_ROOT = MEDIA_ROOT
 
 MEDIA_PATHS = [
@@ -27,10 +17,6 @@ MEDIA_PATHS = [
     MODELS_DATA_PATH
 ]
 
-if not path.exists(MEDIA_ROOT):
-    mkdir(MEDIA_ROOT)
-
 for media_path in MEDIA_PATHS:
-    full_path = path.join(MEDIA_ROOT, media_path)
-    if not path.exists(full_path):
-        mkdir(full_path)
+    full_path = os.path.join(MEDIA_ROOT, media_path)
+    os.makedirs(full_path, exist_ok=True)
