@@ -36,6 +36,8 @@ def clean_database():
     delete_recognitions = True
     delete_recognitions_days = 7
 
+    now = make_aware(datetime.now())
+
     if delete_orphan_faces:
         Face.objects.filter(subject__isnull=True).delete()
 
@@ -47,7 +49,7 @@ def clean_database():
         ).delete()
 
     if delete_unnamed_subjects:
-        max_timestamp = make_aware(datetime.now()) - timedelta(days=delete_unnamed_subjects_days)
+        max_timestamp = now - timedelta(days=delete_unnamed_subjects_days)
         Subject.objects.filter(
             name='',
             last_name='',
@@ -55,7 +57,7 @@ def clean_database():
         ).delete()
 
     if delete_recognitions:
-        max_timestamp = make_aware(datetime.now()) - timedelta(days=delete_recognitions_days)
+        max_timestamp = now - timedelta(days=delete_recognitions_days)
         Recognition.objects.filter(
             created_at__lt=max_timestamp
         ).delete()
@@ -67,18 +69,19 @@ CREATED_TASK_TIMEOUT_DAYS = 1
 
 @shared_task
 def check_tasks():
-    datetime_now = make_aware(datetime.now())
-    min_timestamp = datetime_now - timedelta(days=CHECK_TASKS_MAX_AGE_DAYS)
+    now = make_aware(datetime.now())
+    min_timestamp = now - timedelta(days=CHECK_TASKS_MAX_AGE_DAYS)
     tasks = Task.objects.filter(
         updated_at__gt=min_timestamp,
         repeat=False
     )
 
-    timeout_timestamp = datetime_now - timedelta(days=CREATED_TASK_TIMEOUT_DAYS)
+    timeout_timestamp = now - timedelta(days=CREATED_TASK_TIMEOUT_DAYS)
 
     for task in tasks:
         if task.status in (Task.STATUS_CREATED, Task.STATUS_FAILURE):
-            # If task is in status "CREATED" for more than a certain number of days, delete it
+            # If task is in status "CREATED" for more than a certain number
+            # of days, delete it
             if (
                 task.schedule_start_at is None and
                 task.updated_at < timeout_timestamp
@@ -87,7 +90,7 @@ def check_tasks():
                 task.schedule_start_at < timeout_timestamp
             ) or (
                 task.schedule_stop_at is not None and
-                datetime_now > task.schedule_stop_at
+                now > task.schedule_stop_at
             ):
                 try:
                     services.tasks.stop(task)
@@ -97,7 +100,7 @@ def check_tasks():
                 task.save(update_fields=['status'])
             elif (
                 task.schedule_start_at is not None and
-                datetime_now > task.schedule_start_at
+                now > task.schedule_start_at
             ) or task.schedule_start_at is None:
                 try:
                     services.tasks.start(task)
@@ -107,21 +110,21 @@ def check_tasks():
         elif task.status in (Task.STATUS_RUNNING, Task.STATUS_PAUSED):
             if (
                 task.schedule_stop_at is not None and
-                datetime_now > task.schedule_stop_at
+                now > task.schedule_stop_at
             ):
                 try:
                     services.tasks.stop(task)
                 except services.ServiceError as err:
                     logger.error(err)
 
-    weekday = str(datetime_now.weekday())
+    weekday = str(now.weekday())
     tasks = Task.objects.exclude.filter(
         repeat=True,
         camera__isnull=False,
         repeat_days__icontains=weekday
     )
     time_max_stop = time(hour=23)
-    time_now = datetime_now.time()
+    time_now = now.time()
 
     for task in tasks:
         schedule_stop_at = time_max_stop

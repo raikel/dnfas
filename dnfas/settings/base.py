@@ -189,7 +189,7 @@ CELERY_BEAT_SCHEDULE = {
     },
     'check_tasks': {
         'task': 'dfapi.tasks.check_tasks',
-        'schedule': 60
+        'schedule': 60 * 15
     },
 }
 

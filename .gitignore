@@ -7,7 +7,9 @@ storage/
 celerybeat-schedule
 clean_migrations.sh
 gitpush.sh
+start_celery.sh
 .coverage
+.env.prod
 TODOS.md
 *.sqlite3
 *.log

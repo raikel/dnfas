@@ -10,11 +10,12 @@ DEBUG = False
 
 MIDDLEWARE.remove('corsheaders.middleware.CorsMiddleware')
 
-TEMPLATES[0]['DIRS'] = [SPA_DIR]
+if SPA_DIR:
+    TEMPLATES[0]['DIRS'] = [SPA_DIR]
 
-STATICFILES_DIRS = [
-  os.path.realpath(os.path.join(SPA_DIR, 'static')),
-]
+    STATICFILES_DIRS = [
+      os.path.realpath(os.path.join(SPA_DIR, 'static')),
+    ]
 
 # Password validation
 # https://docs.djangoproject.com/en/2.2/ref/settings/#auth-password-validators
