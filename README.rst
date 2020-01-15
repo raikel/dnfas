@@ -69,56 +69,43 @@ Next step is to create a new database and user in Postgres. We provide a small s
 .. code-block:: bash
 
     bash dbinit.sh \
-        --pguser=<PG_USER> \
-        --pgpass=<PG_PASS> \
-        --dbname=<DB_NAME> \
-        --dbuser=<DB_USER> \
-        --dbpass=<DB_PASS> 
+        --pguser=${PG_USER} \
+        --pgpass=${PG_PASS} \
+        --dbname=${DB_NAME} \
+        --dbuser=${DB_USER} \
+        --dbpass=${DB_PASS} 
 
-Where `<PG_USER>` is a Postgres user with super-user privileges, `<PG_PASS>` is the password of `<PG_USER>`, and `<DB_NAME>`, `<DB_USER>` and `<DB_PASS>` are the project database name, user and password, respectively. You can also set up the database by issuing the following commands in a Postgres session:
+Where ``${PG_USER}`` is a Postgres user with super-user privileges, ``${PG_PASS}`` is the password of ``${PG_USER}``, and ``${DB_NAME}``, ``${DB_USER}`` and ``${DB_PASS}`` are the project database name, user and password, respectively. You can also set up the database by issuing the following commands in a Postgres session:
 
 .. code-block:: bash
 
-    DROP DATABASE IF EXISTS <DB_NAME>;
-    CREATE DATABASE <DB_NAME>;
+    DROP DATABASE IF EXISTS ${DB_NAME};
+    CREATE DATABASE ${DB_NAME};
     DROP USER IF EXISTS ${DBUSER};
-    CREATE USER <DB_USER> WITH PASSWORD '<DB_PASS>';
-    ALTER ROLE <DB_USER> SET client_encoding TO 'utf8';
-    ALTER ROLE <DB_USER> SET default_transaction_isolation TO 'read committed';
-    ALTER ROLE <DB_USER> SET timezone TO 'UTC';
-    GRANT ALL PRIVILEGES ON DATABASE <DB_NAME> TO <DB_USER>;
+    CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';
+    ALTER ROLE ${DB_USER} SET client_encoding TO 'utf8';
+    ALTER ROLE ${DB_USER} SET default_transaction_isolation TO 'read committed';
+    ALTER ROLE ${DB_USER} SET timezone TO 'UTC';
+    GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};
 
 Configuration
 -------------
 
 To configure Dnfas runtime parameters, set the following environment variables:
 
-:DJANGO_SETTINGS_MODULE
-    Module for Django settings. Can be "dnfas.settings.production", "dnfas.settings.development" or "dnfas.settings.testing".
-
-:DNFAS_ALLOWED_HOSTS
-    A comma separated list of allowed hosts, for example "192.168.5.3, 192.168.5.4".
-    
-:DNFAS_SECRET_KEY
-    Application secret key.
-    
-:DNFAS_DB_NAME
-    Application database name.
-
-:DNFAS_DB_USER
-    Application database user name.
-    
-:DNFAS_DB_PASSWORD
-    Application database password.
-
-:DNFAS_DB_HOST
-    Application database host. Optional (default="localhost").
-
-:DNFAS_SPA_DIR
-    Root directory of Single Page Application (SPA) files. Optional (default="").
-
-:DNFAS_WORKER_NAME
-    Name of the current Dnfas instance when used as cluster node. Optional (default="master")
+=======================     ===========
+Variable name               Description
+=======================     ===========
+DJANGO_SETTINGS_MODULE      Module for Django settings. Can be "dnfas.settings.production", "dnfas.settings.development" or "dnfas.settings.testing".
+DNFAS_ALLOWED_HOSTS         A comma separated list of allowed hosts, for example "192.168.5.3, 192.168.5.4".
+DNFAS_SECRET_KEY            Application secret key.
+DNFAS_DB_NAME               Application database name.
+DNFAS_DB_USER               Application database user name.
+DNFAS_DB_PASSWORD           Application database password.
+DNFAS_DB_HOST               Application database host. Optional (default="localhost").
+DNFAS_SPA_DIR               Root directory of Single Page Application (SPA) files. Optional (default="").
+DNFAS_WORKER_NAME           Name of the current Dnfas instance when used as cluster node. Optional (default="master")
+=======================     ===========
     
 A configuration file with all environments variables is also provided in the project. You can find it at `deploy/dnfas.conf` under the project root directory. To use, save it to a known location and edit its content, for example:
 
