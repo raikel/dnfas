@@ -11,10 +11,11 @@ DEBUG = False
 MIDDLEWARE.remove('corsheaders.middleware.CorsMiddleware')
 
 if SPA_DIR:
+    SPA_DIR = os.path.realpath(SPA_DIR)
     TEMPLATES[0]['DIRS'] = [SPA_DIR]
 
     STATICFILES_DIRS = [
-      os.path.realpath(os.path.join(SPA_DIR, 'static')),
+        os.path.join(SPA_DIR, 'static')
     ]
 
 # Password validation
