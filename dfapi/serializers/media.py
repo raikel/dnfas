@@ -23,9 +23,12 @@ def video_path_validator(value):
 class VideoRecordSerializer(MaskFieldsSerializer):
 
     path = serializers.CharField(
-        write_only=True,
         validators=[video_path_validator],
         help_text='The relative path of the video file.'
+    )
+    name = serializers.CharField(
+        required=False,
+        allow_blank=True
     )
     url = serializers.CharField(read_only=True)
     thumbs = VideoThumbSerializer(many=True, read_only=True)
@@ -33,7 +36,6 @@ class VideoRecordSerializer(MaskFieldsSerializer):
     frames_count = serializers.IntegerField(read_only=True)
     processing_time = serializers.FloatField(read_only=True)
     frame_rate = serializers.FloatField(read_only=True)
-    faces_count = serializers.FloatField(read_only=True)
     last_task_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -41,6 +43,7 @@ class VideoRecordSerializer(MaskFieldsSerializer):
         fields = (
             'id',
             'path',
+            'name',
             'starts_at',
             'finish_at',
             'created_at',
@@ -55,7 +58,6 @@ class VideoRecordSerializer(MaskFieldsSerializer):
             'frames_count',
             'processing_time',
             'frame_rate',
-            'faces_count',
             'last_task_at'
         )
         read_only_fields = (
@@ -72,7 +74,6 @@ class VideoRecordSerializer(MaskFieldsSerializer):
             'frames_count',
             'processing_time',
             'frame_rate',
-            'faces_count',
             'last_task_at',
         )
 
@@ -88,7 +89,6 @@ class CameraSerializer(MaskFieldsSerializer):
     frames_count = serializers.IntegerField(read_only=True)
     processing_time = serializers.FloatField(read_only=True)
     frame_rate = serializers.FloatField(read_only=True)
-    faces_count = serializers.FloatField(read_only=True)
     last_task_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -106,7 +106,6 @@ class CameraSerializer(MaskFieldsSerializer):
             'frames_count',
             'processing_time',
             'frame_rate',
-            'faces_count',
             'last_task_at'
         )
         read_only_fields = (
@@ -117,6 +116,5 @@ class CameraSerializer(MaskFieldsSerializer):
             'frames_count',
             'processing_time',
             'frame_rate',
-            'faces_count',
             'last_task_at'
         )

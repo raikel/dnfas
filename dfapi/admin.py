@@ -98,13 +98,17 @@ class FaceAdmin(admin.ModelAdmin):
         'box',
         'created_at',
         'size_bytes',
-        'subject'
+        'subject',
+        'pred_sex',
+        'pred_age'
     )
     readonly_fields = (
         'id',
         'landmarks',
         'box',
-        'created_at'
+        'created_at',
+        'pred_sex',
+        'pred_age'
     )
 
 
@@ -141,8 +145,7 @@ class VideoRecordAdmin(admin.ModelAdmin):
         'full_path',
         'frames_count',
         'processing_time',
-        'frame_rate',
-        'faces_count'
+        'frame_rate'
     )
     readonly_fields = (
         'id',
@@ -156,8 +159,7 @@ class VideoRecordAdmin(admin.ModelAdmin):
         'full_path',
         'frames_count',
         'processing_time',
-        'frame_rate',
-        'faces_count'
+        'frame_rate'
     )
     inlines = (VideoThumbInline,)
 
@@ -173,29 +175,6 @@ class FrameAdmin(admin.ModelAdmin):
     inlines = (FaceInline,)
 
 
-class TaskInline(admin.TabularInline):
-    model = Task
-    fields = (
-        'id',
-        'status',
-        'started_at',
-        'finished_at',
-        'frames_count',
-        'faces_count',
-        'processing_time',
-        'frame_rate'
-    )
-    readonly_fields = (
-        'id',
-        'status',
-        'started_at',
-        'finished_at',
-        'frames_count',
-        'faces_count',
-        'processing_time'
-    )
-
-
 @admin.register(Camera)
 class CameraAdmin(admin.ModelAdmin):
     fields = (
@@ -207,18 +186,14 @@ class CameraAdmin(admin.ModelAdmin):
         'address',
         'frames_count',
         'processing_time',
-        'frame_rate',
-        'faces_count',
+        'frame_rate'
     )
     readonly_fields = (
         'id',
         'frames_count',
         'processing_time',
-        'frame_rate',
-        'faces_count',
+        'frame_rate'
     )
-
-    inlines = (TaskInline,)
 
 
 @admin.register(Task)
@@ -231,9 +206,8 @@ class TaskAdmin(admin.ModelAdmin):
         'updated_at',
         'started_at',
         'finished_at',
-        'frames_count',
-        'processing_time',
-        'progress'
+        'progress',
+        'info'
     )
 
 

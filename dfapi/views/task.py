@@ -52,16 +52,19 @@ class TaskView(
         queryset = self.queryset
         params = self.request.query_params
 
-        if params.getlist('status', None) is not None and len(params.getlist('status', None)):
-            queryset = queryset.filter(status__in=params.getlist('status'))
-        elif params.get('status', None) is not None:
-            queryset = queryset.filter(status=params['status'])
+        name = params.get('name', None)
+        if name is not None:
+            queryset = queryset.filter(name__icontains=name)
 
-        if params.get('camera', None) is not None:
-            queryset = queryset.filter(camera=params['camera'])
+        task_type = params.getlist('task_type', None)
+        if task_type is not None and len(task_type):
+            queryset = queryset.filter(task_type__in=task_type)
 
-        if params.get('video', None) is not None:
-            queryset = queryset.filter(video=params['video'])
+        task_status = params.getlist('status', None)
+        if task_status is not None and len(task_status):
+            queryset = queryset.filter(status__in=task_status)
+        # elif params.get('status', None) is not None:
+        #     queryset = queryset.filter(status=params['status'])
 
         if params.get('order_by', None) is not None:
             queryset = queryset.order_by(params['order_by'])
@@ -93,8 +96,9 @@ class TaskView(
     def destroy(self, request, pk):
 
         try:
+            pk = int(pk)
             task = self.queryset.get(pk=pk)
-        except Task.DoesNotExist:
+        except (Task.DoesNotExist, ValueError):
             raise NotFound(f'A task with pk={pk} does not exist.')
 
         try:
@@ -126,8 +130,9 @@ class TaskView(
         serializer_context = {'request': request}
 
         try:
+            pk = int(pk)
             task = Task.objects.get(pk=pk)
-        except Task.DoesNotExist:
+        except (Task.DoesNotExist, ValueError):
             raise NotFound(f'A task with pk={pk} does not exists.')
 
         try:

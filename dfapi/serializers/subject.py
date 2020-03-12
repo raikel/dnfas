@@ -1,18 +1,24 @@
 from rest_framework import serializers
-from .face import FaceSerializer
 from .abstracts import MaskFieldsSerializer
 from ..models import Subject, SubjectSegment, Camera, VideoRecord, Task, Face
 
 
 class SubjectSerializer(MaskFieldsSerializer):
 
-    faces = FaceSerializer(many=True, read_only=True)
+    faces = serializers.PrimaryKeyRelatedField(
+        queryset=Face.objects.all(),
+        many=True,
+        required=False
+    )
     full_name = serializers.CharField(read_only=True)
+    image = serializers.ImageField(read_only=True)
     age = serializers.IntegerField(read_only=True)
     last_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     birthdate = serializers.DateField(required=False, allow_null=True)
     sex = serializers.CharField(required=False, allow_blank=True)
     skin = serializers.CharField(required=False, allow_blank=True)
+    pred_sex = serializers.CharField(read_only=True)
+    pred_age = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Subject
@@ -20,11 +26,14 @@ class SubjectSerializer(MaskFieldsSerializer):
             'id',
             'faces',
             'name',
+            'image',
             'last_name',
             'full_name',
             'age',
             'birthdate',
             'sex',
+            'pred_sex',
+            'pred_age',
             'skin',
             'created_at',
             'updated_at',
@@ -35,17 +44,11 @@ class SubjectSerializer(MaskFieldsSerializer):
             'created_at',
             'updated_at',
             'full_name',
-            'age'
+            'age',
+            'image',
+            'pred_sex',
+            'pred_age',
         )
-
-
-class SubjectEditSerializer(SubjectSerializer):
-
-    faces = serializers.PrimaryKeyRelatedField(
-        queryset=Face.objects.all(),
-        many=True,
-        required=False
-    )
 
 
 class SubjectSegmentSerializer(MaskFieldsSerializer):

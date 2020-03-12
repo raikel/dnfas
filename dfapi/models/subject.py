@@ -19,7 +19,7 @@ logger = logging.getLogger(logger_name)
 class Subject(models.Model):
 
     SEX_MAN = 'man'
-    SEX_WOMAN = 'women'
+    SEX_WOMAN = 'woman'
 
     SEX_CHOICES = [
         (SEX_MAN, 'man'),
@@ -36,7 +36,10 @@ class Subject(models.Model):
         (SKIN_BROWN, 'brown'),
     ]
 
-    unique_id = models.CharField(max_length=255, unique=True, blank=True, db_index=True)
+    SOURCE_CAMERA = 'camera'
+    SOURCE_VIDEO = 'video'
+    SOURCE_MANUAL = 'manual'
+
     name = models.CharField(max_length=255, blank=True, default='')
     last_name = models.CharField(max_length=255, blank=True, default='')
     birthdate = models.DateField(blank=True, null=True)
@@ -56,13 +59,14 @@ class Subject(models.Model):
 
     @cached_property
     def full_name(self):
-        if self.name and self.last_name:
-            return f'{self.name} {self.last_name}'
-        elif self.name:
-            return self.name
-        elif self.last_name:
-            return self.last_name
-        return ''
+        return f'{self.name} {self.last_name}'.strip()
+
+    @cached_property
+    def image(self):
+        for face in self.faces.all():
+            if face.image:
+                return face.image
+        return None
 
     @cached_property
     def age(self):
@@ -72,9 +76,6 @@ class Subject(models.Model):
 
     def __str__(self):
         return f'{self.full_name}' if self.full_name else f'[{self.pk}] unknown identity'
-
-    # def get_absolute_url(self):
-    #     return reverse('faces:subject_detail', kwargs={'subject_id': self.id})
 
     class Meta:
         ordering = ['-created_at']
@@ -88,17 +89,57 @@ class Subject(models.Model):
     def birthdate_from_age(age):
         return datetime.now() - relativedelta(years=age)
 
-    @cached_property
-    def camera(self):
-        if self.task.camera is not None:
-            return self.task.camera.pk
-        return None
+    # @cached_property
+    # def camera(self):
+    #     if self.task.camera is not None:
+    #         return self.task.camera.pk
+    #     return None
+    #
+    # @cached_property
+    # def video(self):
+    #     if self.task is not None and self.task.video is not None:
+    #         return self.task.video.pk
+    #     return None
 
     @cached_property
-    def video(self):
-        if self.task is not None and self.task.video is not None:
-            return self.task.video.pk
-        return None
+    def pred_age(self):
+        faces = self.faces.all()
+        age = None
+        ages_sum = 0
+        ages_count = 0
+
+        for face in faces:
+            if face.pred_age:
+                ages_sum += face.pred_age
+                ages_count += 1
+
+        if ages_count:
+            age = ages_sum / ages_count
+
+        return age
+
+    @cached_property
+    def pred_sex(self):
+        faces = self.faces.all()
+        sex = ''
+        man_count = 0
+        woman_count = 0
+
+        for face in faces:
+            pred_sex = face.pred_sex
+            if pred_sex:
+                if pred_sex == self.SEX_MAN:
+                    man_count += 1
+                elif pred_sex == self.SEX_WOMAN:
+                    woman_count += 1
+
+        if man_count + woman_count:
+            if man_count > woman_count:
+                sex = self.SEX_MAN
+            else:
+                sex = self.SEX_WOMAN
+
+        return sex
 
     @staticmethod
     def queryset_train_data(queryset: QuerySet) -> Tuple[np.ndarray, np.ndarray]:

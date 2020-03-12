@@ -1,6 +1,13 @@
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    FieldError,
+    ValidationError
+)
 from rest_framework import status
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import (
+    NotFound as ApiNotFund,
+    ValidationError as ApiValidationError
+)
 from rest_framework.response import Response
 
 
@@ -10,9 +17,10 @@ class RetrieveMixin:
     def retrieve(self, request, pk):
         serializer_context = {'request': request}
         try:
+            pk = int(pk)
             instance = self.queryset.get(pk=pk)
-        except ObjectDoesNotExist:
-            raise NotFound(f'A {self.model_name} with pk={pk} does not exist.')
+        except (ObjectDoesNotExist, ValueError):
+            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
 
         serializer = self.serializer_class(
             instance,
@@ -30,7 +38,16 @@ class ListMixin:
         except AttributeError:
             list_serializer_class = self.serializer_class
         serializer_context = {'request': request}
-        page = self.paginate_queryset(self.get_queryset())
+
+        try:
+            queryset = self.get_queryset()
+        except ValidationError:
+            raise ApiValidationError(f'Invalid query parameters.')
+
+        try:
+            page = self.paginate_queryset(queryset)
+        except FieldError:
+            raise ApiValidationError(f'Invalid query parameters.')
 
         fields = request.query_params.get('fields', None)
         if fields is not None:
@@ -76,9 +93,10 @@ class UpdateMixin:
         except AttributeError:
             update_serializer_class = self.serializer_class
         try:
+            pk = int(pk)
             instance = self.queryset.get(pk=pk)
-        except ObjectDoesNotExist:
-            raise NotFound(f'A {self.model_name} with pk={pk} does not exist.')
+        except (ObjectDoesNotExist, ValueError):
+            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
 
         serializer_context = {'request': request}
         serializer = update_serializer_class(
@@ -101,9 +119,10 @@ class DestroyMixin:
     # noinspection PyUnresolvedReferences
     def destroy(self, request, pk=None):
         try:
+            pk = int(pk)
             instance = self.queryset.get(pk=pk)
-        except ObjectDoesNotExist:
-            raise NotFound(f'A {self.model_name} with pk={pk} does not exist.')
+        except (ObjectDoesNotExist, ValueError):
+            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
 
         instance.delete()
 

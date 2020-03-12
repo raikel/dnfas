@@ -3,10 +3,6 @@ from django.conf import settings
 from django.utils import timezone
 import numpy as np
 
-# from os import path
-#
-# from ..services.faces import face_analyzer
-
 
 class Frame(models.Model):
     image = models.ImageField(upload_to=settings.FACES_IMAGES_PATH)
@@ -16,12 +12,22 @@ class Frame(models.Model):
 
 class Face(models.Model):
 
+    SEX_MAN = 'man'
+    SEX_WOMAN = 'woman'
+
+    SEX_CHOICES = [
+        (SEX_MAN, 'man'),
+        (SEX_WOMAN, 'woman'),
+    ]
+
     image = models.ImageField(upload_to=settings.FACES_IMAGES_PATH, null=True, blank=True)
     box_bytes = models.BinaryField(null=True, blank=True)
     landmarks_bytes = models.BinaryField(null=True, blank=True)
     embeddings_bytes = models.BinaryField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     size_bytes = models.IntegerField(blank=True, null=True)
+    pred_sex = models.CharField(max_length=16, choices=SEX_CHOICES, blank=True, default='')
+    pred_age = models.PositiveIntegerField(blank=True, null=True)
     timestamp = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     frame = models.ForeignKey(

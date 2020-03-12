@@ -1,5 +1,12 @@
 from .media import VideoRecord, VideoThumb, Camera
-from .task import Task, HuntMatch
+from .task import (
+    Task,
+    HuntMatch,
+    VdfTaskConfig,
+    VhfTaskConfig,
+    VTaskConfig,
+    PgaTaskConfig
+)
 from .face import Face, Frame
 from .subject import Subject, SubjectSegment
 from .stat import Stat

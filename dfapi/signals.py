@@ -7,16 +7,15 @@ from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 
 from . import services
-from .services.faces import face_analyzer
 from .models import (
     Face,
-    Subject,
     Frame,
     VideoRecord,
     SubjectSegment,
     Task,
     Notification
 )
+from .services.faces import face_analyzer
 
 logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
@@ -48,33 +47,32 @@ def delete_face_image_on_change(sender, instance: Face, **kwargs):
             os.remove(old_file.path)
 
 
-@receiver(post_save, sender=Face)
-def on_face_post_save(sender, instance: Face, **kwargs):
-    if not instance:
-        return
-
-    if hasattr(instance, 'dirty'):
-        del instance.dirty
-        return
-
-    if instance.size_bytes is None:
-        instance.dirty = True
-        instance.size_bytes = instance.image.size
-        instance.save()
-
-    if instance.frame is not None and instance.frame.size_bytes == 0:
-        instance.frame.size_bytes = instance.frame.image.size
-        instance.frame.save()
-
-    if (
-        instance.embeddings_bytes is None or
-        instance.landmarks_bytes is None or
-        instance.box_bytes is None
-    ):
-        if os.path.isfile(instance.image.path):
-            face_analyzer.analyze_face(instance.pk)
-            # instance = detect_face(instance)
-
+# @receiver(post_save, sender=Face)
+# def on_face_post_save(sender, instance: Face, **kwargs):
+#     if not instance:
+#         return
+#
+#     if hasattr(instance, 'dirty'):
+#         del instance.dirty
+#         return
+#
+#     if instance.size_bytes is None:
+#         instance.dirty = True
+#         instance.size_bytes = instance.image.size
+#         instance.save()
+#
+#     if instance.frame is not None and instance.frame.size_bytes == 0:
+#         instance.frame.size_bytes = instance.frame.image.size
+#         instance.frame.save()
+#
+#     if (
+#         instance.embeddings_bytes is None or
+#         instance.landmarks_bytes is None or
+#         instance.box_bytes is None
+#     ):
+#         if os.path.isfile(instance.image.path):
+#             face_analyzer.analyze_face(instance.pk)
+#             # instance = detect_face(instance)
 
 
 @receiver(post_delete, sender=Frame)
@@ -104,6 +102,8 @@ def auto_delete_file_on_change(sender, instance: Frame, **kwargs):
 def video_record_pre_save(sender, instance: VideoRecord = None, **kwargs):
     if instance is None:
         return
+    if not instance.name:
+        instance.name = instance.path
     services.media.fill_video(instance)
 
 
@@ -112,12 +112,6 @@ def video_record_post_save(sender, instance: VideoRecord = None, **kwargs):
     if instance is None:
         return
     services.media.create_video_thumbs(instance)
-
-
-@receiver(pre_save, sender=Subject)
-def create_unique_id(sender, instance: Subject = None, **kwargs):
-    if instance and not instance.unique_id:
-        instance.unique_id = str(uuid.uuid4())
 
 
 @receiver(pre_save, sender=SubjectSegment)

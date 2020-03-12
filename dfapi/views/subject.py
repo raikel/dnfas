@@ -1,5 +1,9 @@
 from django.conf import settings
+from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .mixins import (
     RetrieveMixin,
@@ -9,10 +13,10 @@ from .mixins import (
     DestroyMixin
 )
 from .. import services
-from ..models import Subject, SubjectSegment
+from ..models import Subject
+from ..models import SubjectSegment
 from ..serializers import (
     SubjectSerializer,
-    SubjectEditSerializer,
     SubjectSegmentSerializer
 )
 
@@ -46,14 +50,17 @@ class SubjectView(
     lookup_field = 'pk'
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    create_serializer_class = SubjectEditSerializer
-    update_serializer_class = SubjectEditSerializer
 
     def get_queryset(self):
         queryset, _ = services.subjects.build_queryset(
             self.queryset, self.request.query_params
         )
         return queryset
+
+    @action(detail=False)
+    def demograp(self, request):
+        data = services.subjects.demograp(self.get_queryset())
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class SubjectSegmentView(
@@ -87,3 +94,4 @@ class SubjectSegmentView(
     ).filter(disk_cached=True)
 
     serializer_class = SubjectSegmentSerializer
+

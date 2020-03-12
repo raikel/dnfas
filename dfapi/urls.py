@@ -1,8 +1,10 @@
 from rest_framework.routers import SimpleRouter
+from django.urls import path
 
 from .views import (
     SubjectView,
     SubjectSegmentView,
+    # DemograpView,
     FaceView,
     RecognitionView,
     FrameView,
@@ -27,4 +29,6 @@ router.register(r'stats', StatView, 'stats')
 router.register(r'notifications', NotificationView, 'notifications')
 router.register(r'recognition', RecognitionView, 'recognitions')
 
-urlpatterns = router.urls
+urlpatterns = router.urls  # + [
+#     path('demograp/', DemograpView.as_view(), name='demograp')
+# ]

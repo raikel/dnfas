@@ -1,7 +1,24 @@
+from typing import List
+
 from django.db import models
+from django.contrib.postgres.fields import JSONField
 
 
 class Task(models.Model):
+
+    TYPE_VIDEO_DETECT_FACES = 'video_detect_faces'
+    TYPE_VIDEO_HUNT_FACES = 'video_hunt_faces'
+    TYPE_VIDEO_DETECT_PERSON = 'video_detect_person'
+    TYPE_VIDEO_HUNT_PERSON = 'video_hunt_person'
+    TYPE_PREDICT_GENDERAGE = 'predict_genderage'
+
+    TYPE_CHOICES = [
+        (TYPE_VIDEO_DETECT_FACES, 'video_detect_faces'),
+        (TYPE_VIDEO_HUNT_FACES, 'video_hunt_faces'),
+        (TYPE_VIDEO_DETECT_PERSON, 'video_detect_person'),
+        (TYPE_VIDEO_HUNT_PERSON, 'video_hunt_person'),
+        (TYPE_PREDICT_GENDERAGE, 'predict_genderage')
+    ]
 
     STATUS_CREATED = 'created'
     STATUS_RUNNING = 'running'
@@ -25,64 +42,25 @@ class Task(models.Model):
         (STATUS_RETRY, 'Retry')
     ]
 
-    MODE_ALL = 'all'
-    MODE_HUNT = 'hunt'
-
-    MODE_CHOICES = [
-        (MODE_ALL, 'Find all faces'),
-        (MODE_HUNT, 'Hunt faces'),
-    ]
-
+    name = models.CharField(max_length=255, default='Task')
+    task_type = models.CharField(
+        max_length=64,
+        choices=TYPE_CHOICES,
+        default=TYPE_VIDEO_DETECT_FACES
+    )
     status = models.CharField(
-        max_length=16, choices=STATUS_CHOICES, default=STATUS_CREATED
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_CREATED
     )
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
     schedule_start_at = models.DateTimeField(null=True, blank=True)
     schedule_stop_at = models.DateTimeField(null=True, blank=True)
-    repeat = models.BooleanField(blank=True, default=False)
     repeat_days = models.CharField(max_length=7, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    frames_count = models.IntegerField(blank=True, default=0)
-    faces_count = models.IntegerField(blank=True, default=0)
-    processing_time = models.FloatField(blank=True, default=0)
-    frame_rate = models.FloatField(blank=True, default=0)
     progress = models.FloatField(blank=True, default=-1)
-    mode = models.CharField(
-        max_length=16, choices=MODE_CHOICES, blank=True, default=MODE_ALL
-    )
-    detection_min_height = models.IntegerField(null=True, blank=True)
-    detection_min_score = models.FloatField(null=True, blank=True)
-    similarity_thresh = models.FloatField(null=True, blank=True)
-    max_frame_size = models.IntegerField(null=True, blank=True)
-    frontal_faces = models.BooleanField(null=True, blank=True)
-    video_detect_interval = models.FloatField(null=True, blank=True)
-    faces_time_memory = models.FloatField(null=True, blank=True)
-    store_face_frames = models.BooleanField(null=True, blank=True)
-    video_start_at = models.FloatField(null=True, blank=True)
-    video_stop_at = models.FloatField(null=True, blank=True)
-
-    hunted_subjects = models.ManyToManyField(
-        'Subject',
-        related_name='hunting_tasks'
-    )
-
-    camera = models.ForeignKey(
-        'Camera',
-        null=True,
-        blank=True,
-        related_name='tasks',
-        on_delete=models.CASCADE
-    )
-
-    video = models.ForeignKey(
-        'VideoRecord',
-        null=True,
-        blank=True,
-        related_name='tasks',
-        on_delete=models.CASCADE
-    )
 
     worker = models.ForeignKey(
         'Worker',
@@ -92,11 +70,75 @@ class Task(models.Model):
         on_delete=models.SET_NULL
     )
 
+    config = JSONField(blank=True, default=dict)
+
+    info = JSONField(blank=True, default=dict)
+
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'Task {self.pk}'
+        return self.name
+
+
+class VTaskConfig:
+    VIDEO_SOURCE_RECORD = 'record'
+    VIDEO_SOURCE_CAMERA = 'camera'
+
+    VIDEO_SOURCE_CHOICES = [
+        (VIDEO_SOURCE_RECORD, 'record'),
+        (VIDEO_SOURCE_CAMERA, 'camera')
+    ]
+
+    def __init__(self, *args, **kwargs):
+        self.video_source_type: str = kwargs.get('video_source_type', '')
+        self.video_source_id: int = kwargs.get('video_source_id', -1)
+        self.start_at: float = kwargs.get('start_at', -1)
+        self.stop_at: float = kwargs.get('stop_at', -1)
+
+
+class VdfTaskConfig(VTaskConfig):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.detection_min_height: int = kwargs.get('detection_min_height', 32)
+        self.detection_min_score: float = kwargs.get('detection_min_score', 0.9)
+        self.similarity_thresh: float = kwargs.get('similarity_thresh', 0.5)
+        self.max_frame_size: int = kwargs.get('max_frame_size', 720)
+        self.frontal_faces: bool = kwargs.get('frontal_faces', True)
+        self.video_detect_interval: float = kwargs.get('video_detect_interval', 0.5)
+        self.faces_time_memory: float = kwargs.get('faces_time_memory', 60)
+        self.store_face_frames: bool = kwargs.get('store_face_frames', True)
+
+
+class VhfTaskConfig(VdfTaskConfig):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.hunted_subjects: List[str] = kwargs.get('hunted_subjects', [])
+
+
+class PgaTaskConfig:
+
+    def __init__(self, *args, **kwargs):
+        self.min_created_at: float = kwargs.get('min_created_at', None)
+        self.max_created_at: float = kwargs.get('min_created_at', None)
+        self.overwrite: bool = kwargs.get('overwrite', False)
+
+
+class PgaTaskInfo:
+
+    def __init__(self):
+        self.faces_count: int = 0
+        self.processing_time: float = 0
+
+
+class VTaskInfo:
+
+    def __init__(self):
+        self.frames_count: int = 0
+        self.processing_time: float = 0
+        self.frame_rate: float = 0
 
 
 class HuntMatch(models.Model):

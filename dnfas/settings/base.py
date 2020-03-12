@@ -199,7 +199,8 @@ DNFAL_FORCE_CPU = os.getenv('DNFAL_FORCE_CPU', 'False') == 'True'
 DNFAL_MODELS_PATHS = {
     'detector': 'weights_detector.pth',
     'marker': 'weights_marker.npy',
-    'encoder': 'weights_encoder.pth'
+    'encoder': 'weights_encoder.pth',
+    'genderage': 'weights_genderage.pth',
 }
 
 for key, filename in DNFAL_MODELS_PATHS.items():

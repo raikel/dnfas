@@ -44,10 +44,6 @@ class CameraView(
     def get_queryset(self):
         queryset = self.queryset
 
-        tasks_running = self.request.query_params.get('tasks_running', None)
-        if tasks_running is not None and tasks_running == 'true':
-            queryset = queryset.filter(tasks__status=Task.STATUS_RUNNING)
-
         name = self.request.query_params.get('name', None)
         if name is not None:
             queryset = queryset.filter(name__icontains=name)

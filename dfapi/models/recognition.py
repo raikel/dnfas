@@ -20,7 +20,7 @@ class RecognitionMatch(models.Model):
 
 class Recognition(models.Model):
 
-    similarity_threshold = models.FloatField(blank=True, default=0.5)
+    sim_thresh = models.FloatField(blank=True, default=0.5)
     max_matches = models.IntegerField(blank=True, default=5)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
@@ -35,13 +35,16 @@ class Recognition(models.Model):
         related_name='recognitions'
     )
 
-    filter = models.ForeignKey(
-        'SubjectSegment',
-        on_delete=models.CASCADE,
-        related_name='filters',
-        null=True,
-        blank=True
-    )
+    # filter = models.ForeignKey(
+    #     'SubjectSegment',
+    #     on_delete=models.CASCADE,
+    #     related_name='filters',
+    #     null=True,
+    #     blank=True
+    # )
 
     def __str__(self):
         return f'Recognition <{self.pk}>'
+
+    class Meta:
+        ordering = ['-created_at']

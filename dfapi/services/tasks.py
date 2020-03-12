@@ -13,7 +13,6 @@ logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
 
 runner_manager = RunnerManager()
-worker_api = WorkerApi()
 
 
 def select_worker():
@@ -23,18 +22,30 @@ def select_worker():
         Task.STATUS_PAUSED
     )
     queryset = Worker.objects.exclude(tasks__status__in=active_status)
-    if len(queryset) > 0:
-        return queryset[0]
-    else:
-        queryset = Worker.objects.filter(
-            tasks__status__in=active_status
-        ).annotate(
-            tasks_count=Count('tasks')
-        ).order_by('tasks_count')
-        if len(queryset) > 0:
-            worker = queryset[0]
-            if worker.tasks_count < worker.max_load:
+    if len(queryset):
+        for worker in queryset:
+            worker_api = WorkerApi(api_url=worker.api_url)
+            if worker_api.is_online():
                 return worker
+            else:
+                logger.warning(f'Worker at {worker.api_url} is offline.')
+
+    queryset = Worker.objects.filter(
+        tasks__status__in=active_status
+    ).annotate(
+        tasks_count=Count('tasks')
+    ).order_by('tasks_count')
+
+    if not len(queryset):
+        return None
+
+    for worker in queryset:
+        if worker.tasks_count < worker.max_load:
+            worker_api = WorkerApi(api_url=worker.api_url)
+            if worker_api.is_online():
+                return worker
+            else:
+                logger.warning(f'Worker at {worker.api_url} is offline.')
 
     return None
 
@@ -57,15 +68,12 @@ def start(task: Task):
     task.worker = worker
     task.save(update_fields=['worker'])
 
-    # if worker is None:
-    #     raise ServiceError(f'Can not start task <{task.pk}> because its worker is undefined.')
-
     if worker.name.lower() == settings.WORKER_NAME.lower():
         runner_manager.create(task.pk)
     else:
+        worker_api = WorkerApi(api_url=worker.api_url)
         worker_api.execute(
-            base_url=worker.api_url,
-            resource=str(task.pk),
+            resource=task.pk,
             action=WorkerApi.ACTION_START,
             username=worker.username,
             password=worker.password
@@ -81,9 +89,9 @@ def pause(task: Task):
     if worker.name.lower() == settings.WORKER_NAME.lower():
         runner_manager.pause(task.pk)
     else:
+        worker_api = WorkerApi(api_url=worker.api_url)
         worker_api.execute(
-            base_url=worker.api_url,
-            resource=str(task.pk),
+            resource=task.pk,
             action=WorkerApi.ACTION_PAUSE,
             username=worker.username,
             password=worker.password
@@ -99,9 +107,9 @@ def resume(task):
     if worker.name.lower() == settings.WORKER_NAME.lower():
         runner_manager.resume(task.pk)
     else:
+        worker_api = WorkerApi(api_url=worker.api_url)
         worker_api.execute(
-            base_url=worker.api_url,
-            resource=str(task.pk),
+            resource=task.pk,
             action=WorkerApi.ACTION_RESUME,
             username=worker.username,
             password=worker.password
@@ -117,9 +125,9 @@ def stop(task):
     if worker.name.lower() == settings.WORKER_NAME.lower():
         runner_manager.stop(task.pk)
     else:
+        worker_api = WorkerApi(api_url=worker.api_url)
         worker_api.execute(
-            base_url=worker.api_url,
-            resource=str(task.pk),
+            resource=task.pk,
             action=WorkerApi.ACTION_STOP,
             username=worker.username,
             password=worker.password

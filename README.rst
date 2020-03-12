@@ -81,7 +81,7 @@ Where ``${PG_USER}`` is a Postgres user with super-user privileges, ``${PG_PASS}
 
     DROP DATABASE IF EXISTS ${DB_NAME};
     CREATE DATABASE ${DB_NAME};
-    DROP USER IF EXISTS ${DBUSER};
+    DROP USER IF EXISTS ${DB_USER};
     CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASS}';
     ALTER ROLE ${DB_USER} SET client_encoding TO 'utf8';
     ALTER ROLE ${DB_USER} SET default_transaction_isolation TO 'read committed';

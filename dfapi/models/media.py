@@ -1,9 +1,11 @@
 from os import path
 
+from django.conf import settings
+from django.contrib.postgres.fields.jsonb import KeyTextTransform
 from django.db import models
 from django.db.models import Sum, Avg
+from django.db.models.functions import Cast
 from django.utils.functional import cached_property
-from django.conf import settings
 
 from .task import Task
 
@@ -14,31 +16,44 @@ class MediaSource(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     @cached_property
+    def tasks(self):
+        return Task.objects.filter(config__video_source_id=self.pk)
+
+    @cached_property
     def running_tasks(self):
         return self.tasks.filter(status=Task.STATUS_RUNNING).count()
 
     @cached_property
     def frames_count(self):
-        result = self.tasks.aggregate(Sum('frames_count'))['frames_count__sum']
+        result = self.tasks.annotate(
+            val=Cast(
+                KeyTextTransform('frames_count', 'info'),
+                models.IntegerField()
+            )
+        ).aggregate(sum=Sum('val'))['sum']
+
         return result if result is not None else 0
 
     @cached_property
     def processing_time(self):
-        result = self.tasks.aggregate(Sum('processing_time'))['processing_time__sum']
+        result = self.tasks.annotate(
+            val=Cast(
+                KeyTextTransform('processing_time', 'info'),
+                models.FloatField()
+            )
+        ).aggregate(sum=Sum('val'))['sum']
+
         return result if result is not None else 0
 
     @cached_property
     def frame_rate(self):
-        result = self.tasks.aggregate(Avg('frame_rate'))['frame_rate__avg']
-        return result if result is not None else 0
-        # processing_time = self.processing_time
-        # if processing_time > 0:
-        #     return self.frames_count / processing_time
-        # return 0
+        result = self.tasks.annotate(
+            val=Cast(
+                KeyTextTransform('frame_rate', 'info'),
+                models.FloatField()
+            )
+        ).aggregate(avg=Avg('val'))['avg']
 
-    @cached_property
-    def faces_count(self):
-        result = self.tasks.aggregate(Sum('faces_count'))['faces_count__sum']
         return result if result is not None else 0
 
     @cached_property
@@ -73,6 +88,7 @@ class Camera(MediaSource):
 class VideoRecord(MediaSource):
 
     path = models.CharField(max_length=255, unique=True, db_index=True)
+    name = models.CharField(max_length=255, blank=True, default='')
     starts_at = models.DateTimeField(blank=True, null=True)
     finish_at = models.DateTimeField(blank=True, null=True)
     frame_width = models.IntegerField(blank=True, null=True)

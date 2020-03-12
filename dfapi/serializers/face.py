@@ -43,21 +43,25 @@ class NpArrayField(serializers.Field):
         return data_bytes
 
 
-class FaceFrameSerializer(serializers.ModelSerializer):
-
-    image = serializers.ImageField()
-    timestamp = serializers.DateTimeField(required=False, allow_null=True)
-
-    class Meta:
-        model = Frame
-        fields = ('id', 'image', 'timestamp')
-        read_only_fields = ('id',)
+# class FaceFrameSerializer(serializers.ModelSerializer):
+#
+#     image = serializers.ImageField()
+#     timestamp = serializers.DateTimeField(required=False, allow_null=True)
+#
+#     class Meta:
+#         model = Frame
+#         fields = ('id', 'image', 'timestamp')
+#         read_only_fields = ('id',)
 
 
 class FaceSerializer(MaskFieldsSerializer):
 
     image = serializers.ImageField(required=True, allow_null=True)
-    frame = FaceFrameSerializer(required=False, allow_null=True)
+    frame = serializers.PrimaryKeyRelatedField(
+        required=False,
+        allow_null=True,
+        queryset=Frame.objects.all()
+    )
 
     box = serializers.ListSerializer(
         required=False,
@@ -65,6 +69,9 @@ class FaceSerializer(MaskFieldsSerializer):
         child=serializers.FloatField(),
         read_only=True
     )
+
+    pred_sex = serializers.ChoiceField(read_only=True, choices=Face.SEX_CHOICES)
+    pred_age = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Face
@@ -75,28 +82,35 @@ class FaceSerializer(MaskFieldsSerializer):
             'box',
             'subject',
             'created_at',
+            'pred_sex',
+            'pred_age',
             'timestamp'
         )
         read_only_fields = (
             'id',
             'created_at',
-            'box'
+            'box',
+            'pred_sex',
+            'pred_age',
         )
 
 
-class FrameFaceSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = Face
-        fields = ('id', 'frame', 'image', 'box', 'subject')
-        read_only_fields = ('id', 'frame', 'image', 'box', 'subject')
+# class FrameFaceSerializer(serializers.ModelSerializer):
+#
+#     class Meta:
+#         model = Face
+#         fields = ('id', 'frame', 'image', 'box', 'subject')
+#         read_only_fields = ('id', 'frame', 'image', 'box', 'subject')
 
 
 class FrameSerializer(MaskFieldsSerializer):
 
     image = serializers.ImageField()
     timestamp = serializers.DateTimeField(required=False, allow_null=True)
-    faces = FrameFaceSerializer(many=True, read_only=True)
+    faces = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Frame

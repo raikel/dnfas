@@ -12,6 +12,7 @@ from threading import Thread
 from time import time, sleep
 from typing import Dict, List
 from uuid import uuid4
+import cv2 as cv
 
 import numpy as np
 import requests
@@ -22,11 +23,23 @@ from django.utils.timezone import make_aware
 from dnfal import mtypes
 from dnfal.settings import Settings
 from dnfal.vision import FacesVision
+from dnfal.engine import VideoAnalyzer
 from requests import Response
 
 from .exceptions import ServiceError
 from .notifications import task_notificate
-from ..models import Task, Subject, Face, Frame, HuntMatch
+from ..models import (
+    Subject,
+    Face,
+    Frame,
+    HuntMatch,
+    VideoRecord,
+    Camera,
+    VdfTaskConfig,
+    VhfTaskConfig,
+    PgaTaskConfig,
+    Task
+)
 
 MAX_WORKERS = 4
 MAX_EXECUTOR_THREADS = 8
@@ -36,11 +49,15 @@ WORKER_WAIT_TIMEOUT = 60
 WORKER_PUT_TIMEOUT = 10
 WORKER_QUEUE_MAX_SIZE = 24
 
+TEST_CONN_TIMEOUT = 1
+
 TASK_FLAG_RUN = 0
 TASK_FLAG_PAUSE = 1
 TASK_FLAG_RESUME = 2
 TASK_FLAG_STOP = 3
 TASK_FLAG_KILL = 4
+
+PAUSE_DURATION = 1
 
 logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
@@ -93,32 +110,38 @@ def create_face(face: mtypes.Face, subject_id: int):
     face.data['key'] = instance.pk
 
 
-def update_face(face: mtypes.Face, task_id: int, mode: str):
+def update_face_detect(face: mtypes.Face, task_id: int):
 
     if face.subject is None:
         logger.error('Invalid operation. Face subject can not be empty.')
         return
 
-    if mode == Task.MODE_HUNT:
-        hunt_match_id = face.subject.data.get('hunt_key', None)
-        try:
-            hunt_match: HuntMatch = HuntMatch.objects.get(pk=hunt_match_id)
-        except HuntMatch.DoesNotExist:
-            logger.error(f'Hunt match <{hunt_match_id}> does not exist.')
-            return
-        subject_instance = hunt_match.matched_subject
-        if subject_instance is None:
-            subject_instance = Subject.objects.create(task_id=task_id)
-            face.subject.data['subject_id'] = subject_instance.pk
-            hunt_match.matched_subject = subject_instance
-            hunt_match.save(update_fields=['matched_subject'])
-        create_face(face, subject_instance.pk)
-    elif mode == Task.MODE_ALL:
-        subject_id = face.subject.data.get('subject_id', None)
-        if subject_id is None:
-            subject_instance = Subject.objects.create(task_id=task_id)
-            face.subject.data['subject_id'] = subject_instance.pk
-        create_face(face, face.subject.data['subject_id'])
+    subject_id = face.subject.data.get('subject_id', None)
+    if subject_id is None:
+        subject_instance = Subject.objects.create(task_id=task_id)
+        face.subject.data['subject_id'] = subject_instance.pk
+    create_face(face, face.subject.data['subject_id'])
+
+
+def update_face_hunt(face: mtypes.Face, task_id: int):
+
+    if face.subject is None:
+        logger.error('Invalid operation. Face subject can not be empty.')
+        return
+
+    hunt_match_id = face.subject.data.get('hunt_key', None)
+    try:
+        hunt_match: HuntMatch = HuntMatch.objects.get(pk=hunt_match_id)
+    except HuntMatch.DoesNotExist:
+        logger.error(f'Hunt match <{hunt_match_id}> does not exist.')
+        return
+    subject_instance = hunt_match.matched_subject
+    if subject_instance is None:
+        subject_instance = Subject.objects.create(task_id=task_id)
+        face.subject.data['subject_id'] = subject_instance.pk
+        hunt_match.matched_subject = subject_instance
+        hunt_match.save(update_fields=['matched_subject'])
+    create_face(face, subject_instance.pk)
 
 
 def update_task(
@@ -137,100 +160,24 @@ class TaskRunner(Thread):
         'status',
         'started_at',
         'finished_at',
-        'frames_count',
-        'processing_time',
-        'faces_count',
-        'frame_rate'
+        'info',
+        'progress'
     ]
 
-    def __init__(self, task_id: int, daemon: bool = True):
+    def __init__(self, task: Task, daemon: bool = True):
         super().__init__(daemon=daemon)
-
-        task = Task.objects.get(pk=task_id)
 
         self.task: Task = task
         self.status = task.status
         self.last_progress_update = 0
         self.executor = ThreadPoolExecutor(max_workers=MAX_EXECUTOR_THREADS)
 
-        se = Settings()
-
-        se.force_cpu = settings.DNFAL_FORCE_CPU
-        se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
-        se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
-        se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
-
-        if task.camera is not None and task.video is not None:
-            raise ValueError('A Task can not have set both the camera and the video fields.')
-        if task.camera is not None:
-            se.video_capture_source = task.camera.stream_url
-            se.video_real_time = True
-        elif task.video is not None:
-            se.video_capture_source = task.video.full_path
-            se.video_real_time = False
-        else:
-            raise ValueError('A Task must have at least the camera or the video field not null.')
-
-        if task.schedule_start_at is not None:
-            se.video_start_at = task.schedule_start_at.timestamp()
-
-        if task.schedule_stop_at is not None:
-            se.video_stop_at = task.schedule_stop_at.timestamp()
-
-        if task.detection_min_height is not None:
-            se.detection_min_height = task.detection_min_height
-
-        if task.detection_min_score is not None:
-            se.detection_min_score = task.detection_min_score
-
-        if task.similarity_thresh is not None:
-            se.similarity_thresh = task.similarity_thresh
-
-        if task.max_frame_size is not None:
-            se.max_frame_size = task.max_frame_size
-
-        if task.frontal_faces is not None:
-            se.align_max_deviation = (0.4, 0.3)
-
-        if task.video_detect_interval is not None:
-            se.video_detect_interval = task.video_detect_interval
-
-        if task.faces_time_memory is not None:
-            se.faces_time_memory = task.faces_time_memory
-
-        if task.store_face_frames is not None:
-            se.store_face_frames = task.store_face_frames
-
-        if task.mode:
-            se.video_mode = task.mode
-
-        if task.mode == Task.MODE_HUNT:
-            embeddings = []
-            keys = []
-            for subject in task.hunted_subjects.all():
-                hunt_match = HuntMatch.objects.create(
-                    target_subject=subject,
-                    task=task
-                )
-                for face in subject.faces.all():
-                    keys.append(hunt_match.pk)
-                    embeddings.append(face.embeddings)
-
-            se.video_hunt_embeddings = np.array(embeddings)
-            se.video_hunt_keys = keys
-
-        self.faces_vision = FacesVision(se)
-
     def run(self):
         try:
             self.task.status = Task.STATUS_RUNNING
             self.task.started_at = make_aware(datetime.now())
             self.send_progress()
-
-            self.faces_vision.video_analyzer.run(
-                frame_callback=self.on_frame,
-                update_subject_callback=self.on_subject_updated
-            )
+            self.main_run()
             if self.task.status not in (Task.STATUS_KILLED, Task.STATUS_STOPPED):
                 self.task.status = Task.STATUS_SUCCESS
 
@@ -243,12 +190,101 @@ class TaskRunner(Thread):
             self.failed()
             self.executor.shutdown(wait=True)
 
+    def pause(self):
+        self.task.status = Task.STATUS_PAUSED
+        self.send_progress()
+
+    def resume(self):
+        self.task.status = Task.STATUS_RUNNING
+        self.send_progress()
+
+    def stop(self):
+        self.task.status = Task.STATUS_STOPPED
+        self.send_progress()
+
+    def kill(self):
+        self.task.status = Task.STATUS_KILLED
+        self.send_progress()
+
+    def failed(self):
+        self.task.status = Task.STATUS_FAILURE
+        self.send_progress()
+
+    def send_progress(self):
+        if self.task.status != self.status:
+            task_notificate(self.task.pk, self.status, self.task.status)
+            self.status = self.task.status
+
+        self.task.save(update_fields=self.TASK_UPDATE_FIELDS)
+        # self.executor.submit(
+        #     update_task,
+        #     task=self.task,
+        #     update_fields=self.TASK_UPDATE_FIELDS
+        # )
+
+    def main_run(self):
+        pass
+
+
+class VdfTaskRunner(TaskRunner):
+
+    def __init__(self, task: Task, daemon: bool = True):
+        super().__init__(task, daemon)
+
+        task = self.task
+
+        se = Settings()
+
+        se.force_cpu = settings.DNFAL_FORCE_CPU
+        se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
+        se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
+        se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
+
+        task_config = VdfTaskConfig(**task.config)
+        video_source_type = task_config.video_source_type
+
+        if video_source_type == VdfTaskConfig.VIDEO_SOURCE_RECORD:
+            video = VideoRecord.objects.get(pk=task_config.video_source_id)
+            se.video_capture_source = video.full_path
+            se.video_real_time = False
+        elif video_source_type == VdfTaskConfig.VIDEO_SOURCE_CAMERA:
+            camera = Camera.objects.get(pk=task_config.video_source_id)
+            se.video_capture_source = camera.stream_url
+            se.video_real_time = True
+
+        se.video_mode = VideoAnalyzer.MODE_ALL
+        se.video_start_at = task_config.start_at
+        se.video_stop_at = task_config.stop_at
+        se.detection_min_height = task_config.detection_min_height
+        se.detection_min_score = task_config.detection_min_score
+        se.similarity_thresh = task_config.similarity_thresh
+        se.max_frame_size = task_config.max_frame_size
+        se.video_detect_interval = task_config.video_detect_interval
+        se.faces_time_memory = task_config.faces_time_memory
+        se.store_face_frames = task_config.store_face_frames
+
+        if task_config.frontal_faces:
+            se.align_max_deviation = (0.4, 0.3)
+
+        # noinspection PyTypeChecker
+        self.faces_vision: FacesVision = None
+
+        self.init_vision(se)
+
+    def init_vision(self, vision_settings):
+        self.faces_vision = FacesVision(vision_settings)
+
+    def main_run(self):
+        self.faces_vision.video_analyzer.run(
+            frame_callback=self.on_frame,
+            update_subject_callback=self.on_subject_updated
+        )
+
     def on_subject_updated(self, face: Face):
         self.executor.submit(
-            update_face,
+            update_face_detect,
             face=face,
-            task_id=self.task.pk,
-            mode=self.task.mode
+            task_id=self.task.pk
         )
 
     def on_frame(self):
@@ -256,10 +292,11 @@ class TaskRunner(Thread):
         if (now - self.last_progress_update) > PROGRESS_UPDATE_INTERVAL:
             self.last_progress_update = now
             video_analyzer = self.faces_vision.video_analyzer
+            info = self.task.info
             try:
-                self.task.frames_count = video_analyzer.frames_count
-                self.task.processing_time = video_analyzer.processing_time
-                self.task.faces_count = video_analyzer.faces_count
+                info['frames_count'] = video_analyzer.frames_count
+                info['processing_time'] = video_analyzer.processing_time
+                info['faces_count'] = video_analyzer.faces_count
                 if video_analyzer.start_at > 0:
                     self.task.frame_rate = video_analyzer.frames_count / (
                         now - video_analyzer.start_at
@@ -271,39 +308,189 @@ class TaskRunner(Thread):
 
     def pause(self):
         self.faces_vision.video_analyzer.pause()
-        self.task.status = Task.STATUS_PAUSED
-        self.send_progress()
+        super().pause()
 
     def resume(self):
         self.faces_vision.video_analyzer.pause()
-        self.task.status = Task.STATUS_RUNNING
-        self.send_progress()
+        super().resume()
 
     def stop(self):
         self.faces_vision.video_analyzer.stop()
-        self.task.status = Task.STATUS_STOPPED
-        self.send_progress()
+        super().stop()
 
     def kill(self):
         self.faces_vision.video_analyzer.stop()
-        self.task.status = Task.STATUS_KILLED
-        self.send_progress()
+        super().kill()
 
     def failed(self):
         self.faces_vision.video_analyzer.stop()
-        self.task.status = Task.STATUS_FAILURE
-        self.send_progress()
+        super().failed()
 
-    def send_progress(self):
-        if self.task.status != self.status:
-            task_notificate(self.task.pk, self.status, self.task.status)
-            self.status = self.task.status
 
-        self.executor.submit(
-            update_task,
-            task=self.task,
-            update_fields=self.TASK_UPDATE_FIELDS
+class VhfTaskRunner(VdfTaskRunner):
+
+    def __init__(self, task: Task, daemon: bool = True):
+        super().__init__(task, daemon)
+
+    def init_vision(self, vision_settings: Settings):
+        task_config = VhfTaskConfig(**self.task.config)
+
+        embeddings = []
+        keys = []
+        subjects = Subject.objects.filter(
+            pk__in=task_config.hunted_subjects
         )
+
+        for subject in subjects:
+            hunt_match = HuntMatch.objects.create(
+                target_subject=subject,
+                task=self.task
+            )
+            for face in subject.faces.all():
+                keys.append(hunt_match.pk)
+                embeddings.append(face.embeddings)
+
+        vision_settings.video_hunt_embeddings = np.array(embeddings)
+        vision_settings.video_hunt_keys = keys
+
+        super().init_vision(vision_settings)
+
+    def on_subject_updated(self, face: Face):
+        self.executor.submit(
+            update_face_hunt,
+            face=face,
+            task_id=self.task.pk
+        )
+
+
+class PgaTaskRunner(TaskRunner):
+
+    def __init__(self, task: Task, daemon: bool = True):
+        super().__init__(task, daemon)
+
+        task = self.task
+
+        se = Settings()
+
+        se.force_cpu = settings.DNFAL_FORCE_CPU
+        se.genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage']
+        se.face_align_size = 256
+
+        self.task_config: PgaTaskConfig = PgaTaskConfig(**task.config)
+
+        self.faces_vision: FacesVision = FacesVision(se)
+
+        self._run: bool = False
+        self._pause: bool = False
+
+    def main_run(self):
+
+        if self.task_config.overwrite:
+            queryset = Face.objects.all()
+        else:
+            queryset = (
+                Face.objects.filter(pred_sex__exact='') |
+                Face.objects.filter(pred_age__isnull=True)
+            )
+
+        queryset = queryset.exclude(image__isnull=True)
+
+        if self.task_config.min_created_at is not None:
+            queryset = queryset.filter(
+                created_at__gt=self.task_config.min_created_at
+            )
+
+        if self.task_config.max_created_at is not None:
+            queryset = queryset.filter(
+                created_at__lt=self.task_config.max_created_at
+            )
+
+        batch_size = 64
+        faces_count = 0
+        started_at = time()
+        faces_batch = []
+        total = queryset.count()
+
+        self._run = True
+        for face in queryset.iterator():
+            if not self._run:
+                break
+
+            while self._pause:
+                sleep(PAUSE_DURATION)
+
+            faces_batch.append(face)
+            faces_count += 1
+            last_face = faces_count == total
+
+            if len(faces_batch) == batch_size or last_face:
+                self.predict_genderage(faces_batch)
+                now = time()
+                elapsed = now - self.last_progress_update
+                if elapsed > PROGRESS_UPDATE_INTERVAL or last_face:
+                    self.last_progress_update = now
+                    self.task.progress = 100 * faces_count / total
+                    info = self.task.info
+                    info['faces_count'] = faces_count
+                    info['processing_time'] = now - started_at
+                    self.send_progress()
+
+    def predict_genderage(self, faces: List[Face]):
+        genderage_predictor = self.faces_vision.genderage_predictor
+        face_aligner = self.faces_vision.face_aligner
+
+        faces_images = []
+        faces_inds = []
+        for ind, face in enumerate(faces):
+            face_image = face.image
+            landmarks = face.landmarks
+            if face_image is not None and len(landmarks):
+                face_image = cv.imread(face_image.path)
+                face_image_align, _ = face_aligner.align(face_image, landmarks)
+                faces_images.append(face_image_align)
+                faces_inds.append(ind)
+                # color = (0, 255, 0)
+                # for point in landmarks:
+                #     point = (int(point[0]), int(point[1]))
+                #     cv.circle(face_image, point, 2, color, -1)
+                # cv.imshow('Face', face_image)
+                # ret = cv.waitKey()
+                # cv.imshow('Face aligned', face_image_align)
+                # ret = cv.waitKey()
+
+        n_images = len(faces_images)
+        if n_images:
+            genders, _, ages, _ = genderage_predictor.predict(faces_images)
+            for ind in range(n_images):
+                face = faces[faces_inds[ind]]
+                if genders[ind] == genderage_predictor.GENDER_WOMAN:
+                    face.pred_sex = Face.SEX_WOMAN
+                elif genders[ind] == genderage_predictor.GENDER_MAN:
+                    face.pred_sex = Face.SEX_MAN
+
+                face.pred_age = int(ages[ind])
+
+                face.save(update_fields=['pred_sex', 'pred_age'])
+
+    def pause(self):
+        self._pause = True
+        super().pause()
+
+    def resume(self):
+        self._pause = False
+        super().resume()
+
+    def stop(self):
+        self._run = False
+        super().stop()
+
+    def kill(self):
+        self._run = False
+        super().kill()
+
+    def failed(self):
+        self._run = False
+        super().failed()
 
 
 class WorkerMessage:
@@ -317,6 +504,17 @@ class WorkerMessage:
     def __init__(self, message_data: dict):
         self.task_id: int = message_data['task_id']
         self.command: str = message_data['command']
+
+
+def create_task_runner(task: Task) -> TaskRunner:
+    if task.task_type == Task.TYPE_VIDEO_DETECT_FACES:
+        return VdfTaskRunner(task)
+    elif task.task_type == Task.TYPE_VIDEO_HUNT_FACES:
+        return VhfTaskRunner(task)
+    elif task.task_type == Task.TYPE_PREDICT_GENDERAGE:
+        return PgaTaskRunner(task)
+    else:
+        raise ValueError(f'Invalid task type "{task.task_type}"')
 
 
 def run_worker(recv_queue: mp.Queue):
@@ -352,7 +550,8 @@ def run_worker(recv_queue: mp.Queue):
 
             if command == WorkerMessage.START_TASK:
                 check_tasks()
-                task_runner = TaskRunner(task_id)
+                task = Task.objects.get(pk=task_id)
+                task_runner = create_task_runner(task)
                 task_runner.start()
                 task_runners[task_id] = task_runner
             elif command == WorkerMessage.STOP_TASK:
@@ -434,7 +633,9 @@ class Worker:
             }, timeout=WORKER_PUT_TIMEOUT)
             self.task_ids.append(task_id)
         except QueueFullError:
-            raise ServiceError(f'Unable to start task <{task_id}>, worker queue timeout.')
+            raise ServiceError(
+                f'Unable to start task <{task_id}>, worker queue timeout.'
+            )
 
     def stop_task(self, task_id: int):
         if task_id not in self.task_ids:
@@ -447,7 +648,9 @@ class Worker:
             }, timeout=WORKER_PUT_TIMEOUT)
             self.task_ids.remove(task_id)
         except QueueFullError:
-            raise ServiceError(f'Unable to stop task <{task_id}>, worker queue timeout.')
+            raise ServiceError(
+                f'Unable to stop task <{task_id}>, worker queue timeout.'
+            )
 
     def pause_task(self, task_id: int):
         if task_id not in self.task_ids:
@@ -459,7 +662,9 @@ class Worker:
                 'command': WorkerMessage.PAUSE_TASK
             }, timeout=WORKER_PUT_TIMEOUT)
         except QueueFullError:
-            raise ServiceError(f'Unable to pause task <{task_id}>, worker queue timeout.')
+            raise ServiceError(
+                f'Unable to pause task <{task_id}>, worker queue timeout.'
+            )
 
     def resume_task(self, task_id: int):
         if task_id not in self.task_ids:
@@ -471,7 +676,9 @@ class Worker:
                 'command': WorkerMessage.RESUME_TASK
             }, timeout=WORKER_PUT_TIMEOUT)
         except QueueFullError:
-            raise ServiceError(f'Unable to resume task <{task_id}>, worker queue timeout.')
+            raise ServiceError(
+                f'Unable to resume task <{task_id}>, worker queue timeout.'
+            )
 
 
 class RunnerManager:
@@ -501,7 +708,9 @@ class RunnerManager:
             ]
             worker_ind = int(np.argmin(task_count))
             if task_count[worker_ind] >= MAX_TASKS_PER_WORKER:
-                raise ServiceError(f'Can not create a new task. All workers are full.')
+                raise ServiceError(
+                    f'Can not create a new task. All workers are full.'
+                )
             worker = self.workers[worker_ind]
 
         worker.start_task(task_id)
@@ -531,6 +740,7 @@ class RunnerManager:
 
 
 class WorkerApi:
+
     ACTION_START = 'start/'
     ACTION_PAUSE = 'pause/'
     ACTION_RESUME = 'resume/'
@@ -545,8 +755,9 @@ class WorkerApi:
         ACTION_LOGIN
     ]
 
-    def __init__(self):
+    def __init__(self, api_url: str):
         self.token = None
+        self.api_url = api_url
 
     def _make_request(
         self,
@@ -568,30 +779,34 @@ class WorkerApi:
             logger.error(err)
             return None
 
-    def _login(self, url: str, username: str, password: str):
-
+    def _login(self, username: str, password: str):
+        login_url = self.build_url(self.ACTION_LOGIN)
         response = self._make_request(
-            url,
+            login_url,
             data={
                 'username': username,
                 'password': password
             }
         )
 
+        token = None
         if response is not None:
             try:
                 response_data = response.json()
             except JSONDecodeError:
-                return None
+                pass
             else:
                 if isinstance(response_data, dict):
-                    return response_data.get('token', None)
-                return None
+                    token = response_data.get('token', None)
+
+        if token is None:
+            logger.warning(f'Unable to login at "{login_url}"')
+
+        return token
 
     def execute(
         self,
-        base_url: str,
-        resource: str,
+        resource: [str, int],
         action: str,
         username: str,
         password: str
@@ -599,18 +814,11 @@ class WorkerApi:
         if action not in self.ACTION_CHOICES:
             raise ValueError(f'Invalid action "{action}".')
 
-        url = path.join(base_url, resource, action)
+        url = self.build_url(resource, action)
 
         if self.token is None and username and password:
-            login_url = path.join(base_url, self.ACTION_LOGIN)
-            self.token = self._login(
-                url=login_url,
-                username=username,
-                password=password
-            )
-
+            self.token = self._login(username=username, password=password)
             if self.token is None:
-                logger.warning(f'Unable to login at "{login_url}"')
                 return
 
         headers = None
@@ -634,3 +842,18 @@ class WorkerApi:
         elif isinstance(response_data, dict):
             for msg_key in response_data:
                 logger.error(f'{msg_key}: {response_data[msg_key]}')
+
+    def is_online(self):
+        try:
+            requests.head(
+                self.api_url,
+                timeout=TEST_CONN_TIMEOUT,
+                allow_redirects=False
+            )
+        except:
+            return False
+        return True
+
+    def build_url(self, *args):
+        paths = [self.api_url] + [str(arg) for arg in args]
+        return '/'.join(p.strip('/') for p in paths if p) + '/'

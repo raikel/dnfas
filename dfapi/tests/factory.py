@@ -277,7 +277,6 @@ class SubjectFactory(ModelFactory):
 
     def instance_data(self):
         return dict(
-            unique_id=uuid4(),
             name=FAKER.first_name(),
             last_name=FAKER.last_name(),
             birthdate=FAKER.date(),
@@ -445,7 +444,7 @@ class RecognitionFactory(ModelFactory):
     API_REQUIRED_FIELDS = ['face']
     API_READ_FIELDS = [
         'id',
-        'similarity_threshold',
+        'sim_thresh',
         'max_matches',
         'created_at',
         'face',
@@ -457,7 +456,7 @@ class RecognitionFactory(ModelFactory):
     def instance_data(self):
         face_factory = FaceFactory()
         return dict(
-            similarity_threshold=FAKER.pyfloat(min_value=0, max_value=1),
+            sim_thresh=FAKER.pyfloat(min_value=0, max_value=1),
             max_matches=FAKER.pyint(min_value=1, max_value=10),
             face=face_factory.create_instance()
         )
@@ -465,7 +464,7 @@ class RecognitionFactory(ModelFactory):
     def api_post_data(self, full: bool = True):
         face_factory = FaceFactory()
         data = dict(
-            similarity_threshold=FAKER.pyfloat(min_value=0, max_value=1),
+            sim_thresh=FAKER.pyfloat(min_value=0, max_value=1),
             max_matches=FAKER.pyint(min_value=1, max_value=10),
             face=face_factory.create_instance().pk
         )

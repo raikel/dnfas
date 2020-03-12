@@ -5,6 +5,8 @@ from os import path
 from queue import Empty as QueueEmptyError
 from queue import Full as QueueFullError
 import signal
+from typing import List
+
 from django import db
 
 import cv2 as cv
@@ -12,6 +14,8 @@ import numpy as np
 from django.conf import settings
 from dnfal.settings import Settings
 from dnfal.vision import FacesVision
+from dnfal.genderage import GenderAgePredictor
+from dnfal.alignment import FaceAligner
 
 from .exceptions import ServiceError
 from ..models import (
@@ -26,6 +30,39 @@ logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
 
 ENGINE_WAIT_TIMEOUT = 300
+
+
+def predict_genderage(
+    faces_id: List[int],
+    genderage_predictor: GenderAgePredictor,
+    face_aligner: FaceAligner
+):
+
+    faces = Face.objects.filter(pk__in=faces_id)
+    faces_images = []
+    faces_inds = []
+    for ind, face in faces:
+        face_image = face.image
+        landmarks = face.landmarks
+        if face_image is not None and len(landmarks):
+            face_image = cv.imread(face_image.path)
+            face_image_align, _ = face_aligner.align(face_image, landmarks)
+            faces_images.append(face_image_align)
+            faces_inds.append(ind)
+
+    n_images = len(faces_images)
+    if n_images:
+        genders, _, ages, _ = genderage_predictor.predict(faces_images)
+        for ind in range(n_images):
+            face = faces[faces_inds[ind]]
+            if genders[ind] == GenderAgePredictor.GENDER_WOMAN:
+                face.pred_sex = Face.SEX_WOMAN
+            elif genders[ind] == GenderAgePredictor.GENDER_MAN:
+                face.pred_sex = Face.SEX_MAN
+
+            face.pred_age = int(ages[ind])
+
+            face.save(update_fields=['pred_sex', 'pred_age'])
 
 
 def analyze_face(face_id: int, faces_vision: FacesVision):
@@ -46,6 +83,8 @@ def analyze_face(face_id: int, faces_vision: FacesVision):
     face.landmarks = detected_faces[0].landmarks
 
     face.save()
+
+    return face
 
 
 def analyze_frame(frame_id: int, faces_vision: FacesVision):
@@ -85,9 +124,16 @@ def recognize_face(
 
     segments = recognition.segments.all()
 
-    if len(segments) == 0 and recognition.filter is not None:
-        segments = [recognition.filter]
-    elif len(segments) == 0:
+    # if len(segments) == 0 and recognition.filter is not None:
+    #     segments = [recognition.filter]
+    # elif len(segments) == 0:
+    #     segment, _ = SubjectSegment.objects.get_or_create(
+    #         title=settings.DEFAULT_SEGMENT_TITLE,
+    #         disk_cached=True
+    #     )
+    #     segments = [segment]
+
+    if len(segments) == 0:
         segment, _ = SubjectSegment.objects.get_or_create(
             title=settings.DEFAULT_SEGMENT_TITLE,
             disk_cached=True
@@ -109,7 +155,7 @@ def recognize_face(
     if len(subjects) == 0:
         return [], []
 
-    faces_vision.face_matcher.similarity_threshold = float(recognition.similarity_threshold)
+    faces_vision.face_matcher.similarity_threshold = float(recognition.sim_thresh)
     subject_ids, scores = faces_vision.face_matcher.match(
         x_test=face_embeddings,
         x_train=subjects_embeddings,
@@ -143,6 +189,7 @@ class FaceAnalyzer:
     TASK_ANALYZE_FACE = 'analyze_face'
     TASK_ANALYZE_FRAME = 'analyze_frame'
     TASK_RECOGNIZE_FACE = 'recognize_face'
+    TASK_PREDICT_GENDERAGE = 'predict_genderage'
     TASK_TERMINATE = 'terminate'
 
     def __init__(self):
@@ -188,6 +235,17 @@ class FaceAnalyzer:
             'task_id': self._task_count,
             'kwargs': {
                 'face_id': face_id
+            }
+        }
+        self.send_task(task_data, timeout=self.REQUEST_TIMEOUT)
+
+    def predict_genderage(self, faces_id: List[int]):
+        self._task_count += 1
+        task_data = {
+            'task_name': self.TASK_PREDICT_GENDERAGE,
+            'task_id': self._task_count,
+            'kwargs': {
+                'faces_id': faces_id
             }
         }
         self.send_task(task_data, timeout=self.REQUEST_TIMEOUT)
@@ -249,6 +307,11 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
     se.marking_min_score = 0
     se.detection_min_size = 32
 
+    genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage']
+
+    genderage_predictor = None
+    face_aligner = None
+
     if settings.DEBUG:
         se.log_to_console = True
 
@@ -274,6 +337,18 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
         if task_name == FaceAnalyzer.TASK_ANALYZE_FACE:
             face_id = kwargs['face_id']
             analyze_face(face_id=face_id, faces_vision=faces_vision)
+        elif task_name == FaceAnalyzer.TASK_PREDICT_GENDERAGE:
+            if genderage_predictor is None:
+                genderage_predictor = GenderAgePredictor(genderage_weights_path)
+            if face_aligner is None:
+                face_aligner = FaceAligner(out_size=256)
+
+            faces_id = kwargs['faces_id']
+            predict_genderage(
+                faces_id=faces_id,
+                genderage_predictor=genderage_predictor,
+                face_aligner=face_aligner
+            )
         elif task_name == FaceAnalyzer.TASK_ANALYZE_FRAME:
             frame_id = kwargs['frame_id']
             analyze_frame(frame_id=frame_id, faces_vision=faces_vision)

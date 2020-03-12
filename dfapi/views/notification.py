@@ -42,8 +42,9 @@ class NotificationView(
         serializer_context = {'request': request}
 
         try:
+            pk = int(pk)
             notification = Notification.objects.get(pk=pk)
-        except ObjectDoesNotExist:
+        except (ObjectDoesNotExist, ValueError):
             raise NotFound(f'Notification with pk={pk} does not exist.')
 
         notification.seen = True

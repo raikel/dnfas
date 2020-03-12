@@ -3,15 +3,13 @@ from datetime import timedelta, datetime, time
 
 from celery import shared_task
 from django.conf import settings
-
-from dfapi.models import stat
-
 from django.db.models import Count
 from django.utils.timezone import make_aware
 
-from .models import Face, Frame, Subject, Task, Recognition
+from dfapi.models import stat
 from . import services
-
+from .models import Face, Frame, Subject, Task, Recognition
+from .services.faces import face_analyzer
 
 logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
@@ -73,7 +71,7 @@ def check_tasks():
     min_timestamp = now - timedelta(days=CHECK_TASKS_MAX_AGE_DAYS)
     tasks = Task.objects.filter(
         updated_at__gt=min_timestamp,
-        repeat=False
+        repeat_days__exact=''
     )
 
     timeout_timestamp = now - timedelta(days=CREATED_TASK_TIMEOUT_DAYS)
@@ -119,8 +117,6 @@ def check_tasks():
 
     weekday = str(now.weekday())
     tasks = Task.objects.exclude.filter(
-        repeat=True,
-        camera__isnull=False,
         repeat_days__icontains=weekday
     )
     time_max_stop = time(hour=23)
@@ -150,3 +146,15 @@ def check_tasks():
                     services.tasks.start(task)
                 except services.ServiceError as err:
                     logger.error(err)
+
+
+def predict_genderage():
+
+    faces = (
+        Face.objects.filter(pred_sex__exact='') |
+        Face.objects.filter(pred_age__isnull=True)
+    ).exclude(image__isnull=True)
+
+    faces_id = [face.pk for face in faces]
+
+    face_analyzer.predict_genderage(faces_id)
