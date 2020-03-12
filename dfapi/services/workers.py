@@ -236,9 +236,9 @@ class VdfTaskRunner(TaskRunner):
         se = Settings()
 
         se.force_cpu = settings.DNFAL_FORCE_CPU
-        se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
-        se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
-        se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
+        se.detector_weights_path = settings.DNFAL_MODELS_PATHS['face_detector']
+        se.marker_weights_path = settings.DNFAL_MODELS_PATHS['face_marker']
+        se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['face_encoder']
 
         task_config = VdfTaskConfig(**task.config)
         video_source_type = task_config.video_source_type
@@ -373,7 +373,7 @@ class PgaTaskRunner(TaskRunner):
         se = Settings()
 
         se.force_cpu = settings.DNFAL_FORCE_CPU
-        se.genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage']
+        se.genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage_predictor']
         se.face_align_size = 256
 
         self.task_config: PgaTaskConfig = PgaTaskConfig(**task.config)

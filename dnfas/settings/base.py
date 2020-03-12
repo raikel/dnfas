@@ -197,10 +197,10 @@ CELERY_BEAT_SCHEDULE = {
 DNFAL_FORCE_CPU = os.getenv('DNFAL_FORCE_CPU', 'False') == 'True'
 
 DNFAL_MODELS_PATHS = {
-    'detector': 'weights_detector.pth',
-    'marker': 'weights_marker.npy',
-    'encoder': 'weights_encoder.pth',
-    'genderage': 'weights_genderage.pth',
+    'face_detector': 'weights_face_detector.pth',
+    'face_marker': 'weights_face_marker.npy',
+    'face_encoder': 'weights_face_encoder.pth',
+    'genderage_predictor': 'weights_genderage_predictor.pth',
 }
 
 for key, filename in DNFAL_MODELS_PATHS.items():

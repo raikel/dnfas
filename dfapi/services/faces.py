@@ -299,15 +299,15 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
     se = Settings()
 
     se.force_cpu = settings.DNFAL_FORCE_CPU
-    se.detector_weights_path = settings.DNFAL_MODELS_PATHS['detector']
-    se.marker_weights_path = settings.DNFAL_MODELS_PATHS['marker']
-    se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['encoder']
+    se.detector_weights_path = settings.DNFAL_MODELS_PATHS['face_detector']
+    se.marker_weights_path = settings.DNFAL_MODELS_PATHS['face_marker']
+    se.encoder_weights_path = settings.DNFAL_MODELS_PATHS['face_encoder']
     se.align_max_deviation = None
     se.detection_min_scores = 0.9
     se.marking_min_score = 0
     se.detection_min_size = 32
 
-    genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage']
+    genderage_weights_path = settings.DNFAL_MODELS_PATHS['genderage_predictor']
 
     genderage_predictor = None
     face_aligner = None
