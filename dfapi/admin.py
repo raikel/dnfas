@@ -100,7 +100,8 @@ class FaceAdmin(admin.ModelAdmin):
         'size_bytes',
         'subject',
         'pred_sex',
-        'pred_age'
+        'pred_age',
+        'embeddings'
     )
     readonly_fields = (
         'id',
@@ -108,7 +109,8 @@ class FaceAdmin(admin.ModelAdmin):
         'box',
         'created_at',
         'pred_sex',
-        'pred_age'
+        'pred_age',
+        'embeddings'
     )
 
 
@@ -131,6 +133,7 @@ class VideoRecordAdmin(admin.ModelAdmin):
 
     fields = (
         'id',
+        'name',
         'path',
         'created_at',
         'updated_at',

@@ -1,6 +1,7 @@
 import logging
 import os
 import uuid
+from os import path
 
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save, post_delete
@@ -103,7 +104,7 @@ def video_record_pre_save(sender, instance: VideoRecord = None, **kwargs):
     if instance is None:
         return
     if not instance.name:
-        instance.name = instance.path
+        instance.name = path.basename(instance.path)
     services.media.fill_video(instance)
 
 

@@ -99,7 +99,8 @@ class VideoRecord(MediaSource):
     @cached_property
     def size(self):
         if self.size_bytes is not None:
-            size = float(self.size_bytes)
+            # noinspection PyTypeChecker
+            size = int(self.size_bytes)
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if size < 1024.0:
                     return "%3.1f %s" % (size, x)
@@ -108,13 +109,19 @@ class VideoRecord(MediaSource):
 
     @cached_property
     def url(self):
-        return settings.SERVER_URL + settings.MEDIA_URL + settings.VIDEO_RECORDS_PATH + self.path
+        return settings.SERVER_URL + settings.MEDIA_URL + \
+               settings.VIDEO_RECORDS_PATH + self.path
 
     @cached_property
     def full_path(self):
-        return path.join(settings.MEDIA_ROOT, settings.VIDEO_RECORDS_PATH, str(self.path))
+        return path.join(
+            settings.MEDIA_ROOT,
+            settings.VIDEO_RECORDS_PATH,
+            str(self.path)
+        )
 
     def __str__(self):
+        # noinspection PyTypeChecker
         return path.basename(self.path)
 
 

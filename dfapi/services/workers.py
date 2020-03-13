@@ -350,7 +350,8 @@ class VhfTaskRunner(VdfTaskRunner):
                 keys.append(hunt_match.pk)
                 embeddings.append(face.embeddings)
 
-        vision_settings.video_hunt_embeddings = np.array(embeddings)
+        vision_settings.video_mode = VideoAnalyzer.MODE_HUNT
+        vision_settings.video_hunt_embeddings = embeddings
         vision_settings.video_hunt_keys = keys
 
         super().init_vision(vision_settings)
@@ -408,8 +409,8 @@ class PgaTaskRunner(TaskRunner):
         batch_size = 64
         faces_count = 0
         started_at = time()
-        faces_batch = []
         total = queryset.count()
+        faces_batch = []
 
         self._run = True
         for face in queryset.iterator():
@@ -425,6 +426,7 @@ class PgaTaskRunner(TaskRunner):
 
             if len(faces_batch) == batch_size or last_face:
                 self.predict_genderage(faces_batch)
+                faces_batch = []
                 now = time()
                 elapsed = now - self.last_progress_update
                 if elapsed > PROGRESS_UPDATE_INTERVAL or last_face:
