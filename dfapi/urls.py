@@ -11,7 +11,7 @@ from .views import (
     CameraView,
     VideoRecordView,
     TaskView,
-    TaskTagView,
+    TagView,
     StatView,
     NotificationView
 )
@@ -24,7 +24,7 @@ router.register(r'demograp', DemograpView, 'demograp')
 router.register(r'cameras', CameraView, 'cameras')
 router.register(r'videos', VideoRecordView, 'videos')
 router.register(r'tasks', TaskView, 'tasks')
-router.register(r'task-tags', TaskTagView, 'task-tags')
+router.register(r'tags', TagView, 'tags')
 router.register(r'frames', FrameView, 'frames')
 router.register(r'faces', FaceView, 'faces')
 router.register(r'segments', SubjectSegmentView, 'segments')

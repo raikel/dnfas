@@ -1,17 +1,14 @@
-from abc import ABC
-
 from rest_framework import serializers
+
+from .abstracts import MaskFieldsSerializer
 from ..models import (
-    Worker,
     VideoRecord,
     Camera,
     Subject,
     Task,
-    TaskTag,
-    TaskTag,
+    Tag,
     VTaskConfig
 )
-from .abstracts import MaskFieldsSerializer
 
 
 class VTaskConfigSerializer(serializers.Serializer):
@@ -135,7 +132,7 @@ class FclTaskConfigSerializer(serializers.Serializer):
             Task.objects.get(pk=task_pk)
 
         for tag_pk in filter_tasks_tags:
-            TaskTag.objects.get(pk=tag_pk)
+            Tag.objects.get(pk=tag_pk)
 
         return super().validate(data)
 
@@ -146,15 +143,6 @@ _config_serializers = {
     Task.TYPE_PREDICT_GENDERAGE: PgaTaskConfigSerializer,
     Task.TYPE_FACE_CLUSTERING: FclTaskConfigSerializer
 }
-
-
-class TaskTagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TaskTag
-        fields = (
-            'id',
-            'name'
-        )
 
 
 class TaskSerializer(MaskFieldsSerializer):
@@ -169,12 +157,13 @@ class TaskSerializer(MaskFieldsSerializer):
     # repeat = serializers.BooleanField(required=False)
     repeat_days = serializers.CharField(max_length=7, required=False, allow_blank=True)
     config = serializers.JSONField(required=False, default=dict)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        required=False,
+        many=True
+    )
 
     # Read only
-    tags = serializers.PrimaryKeyRelatedField(
-        many=True,
-        read_only=True
-    )
     status = serializers.CharField(read_only=True)
     started_at = serializers.DateTimeField(read_only=True)
     finished_at = serializers.DateTimeField(read_only=True)

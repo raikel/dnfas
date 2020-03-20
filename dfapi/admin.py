@@ -10,6 +10,7 @@ from .models import (
     VideoThumb,
     Camera,
     Task,
+    Tag,
     Stat,
     Notification,
     Worker,
@@ -118,6 +119,12 @@ class VideoThumbAdmin(admin.ModelAdmin):
         'id',
     )
 
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    readonly_fields = (
+        'id', 'created_at', 'updated_at'
+    )
+
 
 class VideoThumbInline(admin.TabularInline):
     model = VideoThumb
@@ -199,6 +206,7 @@ class CameraAdmin(admin.ModelAdmin):
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
+    filter_horizontal = ('tags',)
 
     readonly_fields = (
         'id',

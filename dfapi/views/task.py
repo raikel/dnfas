@@ -1,52 +1,15 @@
-from rest_framework import status, viewsets, mixins
-from rest_framework.response import Response
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.response import Response
 
 from .mixins import (
     RetrieveMixin,
-    ListMixin,
-    CreateMixin,
-    UpdateMixin,
-    DestroyMixin
+    ListMixin
 )
-from ..models import Task, TaskTag
-from ..serializers import TaskSerializer, TaskTagSerializer
 from .. import services
-
-
-class TaskTagView(
-    RetrieveMixin,
-    ListMixin,
-    CreateMixin,
-    UpdateMixin,
-    DestroyMixin,
-    viewsets.GenericViewSet
-):
-    """
-    retrieve:
-        Return a frame instance.
-
-    list:
-        Return all frames.
-
-    create:
-        Create a new frame.
-
-    destroy:
-        Remove an existing frame.
-
-    partial_update:
-        Update one or more fields on an existing frame.
-
-    detect_faces:
-        Detect faces in a frame instance.
-    """
-
-    model_name = 'TaskTag'
-    lookup_field = 'pk'
-    queryset = TaskTag.objects.all()
-    serializer_class = TaskTagSerializer
+from ..models import Task
+from ..serializers import TaskSerializer
 
 
 class TaskView(
@@ -130,6 +93,32 @@ class TaskView(
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def partial_update(self, request, pk=None):
+
+        try:
+            pk = int(pk)
+            task: Task = self.queryset.get(pk=pk)
+        except (Task.DoesNotExist, ValueError):
+            raise NotFound(f'A task with pk={pk} does not exist.')
+
+        if task.status in (Task.STATUS_RUNNING, Task.STATUS_PAUSED):
+            raise ValidationError(f'Attempt to update an active task.')
+
+        serializer_context = {'request': request}
+        serializer = self.serializer_class(
+            task,
+            data=request.data,
+            context=serializer_context,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        serializer = self.serializer_class(
+            serializer.instance,
+            context=serializer_context
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     def destroy(self, request, pk):
 
         try:
@@ -137,6 +126,9 @@ class TaskView(
             task = self.queryset.get(pk=pk)
         except (Task.DoesNotExist, ValueError):
             raise NotFound(f'A task with pk={pk} does not exist.')
+
+        if task.status in (Task.STATUS_RUNNING, Task.STATUS_PAUSED):
+            raise ValidationError(f'Attempt to delete an active task.')
 
         try:
             services.tasks.stop(task)
@@ -147,19 +139,19 @@ class TaskView(
 
         return Response(None, status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['patch'])
     def start(self, request, pk):
         return self._do_action(request, pk, 'start')
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['patch'])
     def pause(self, request, pk):
         return self._do_action(request, pk, 'pause')
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['patch'])
     def resume(self, request, pk):
         return self._do_action(request, pk, 'resume')
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['patch'])
     def stop(self, request, pk):
         return self._do_action(request, pk, 'stop')
 

@@ -1,7 +1,6 @@
 from .media import VideoRecord, VideoThumb, Camera
 from .task import (
     Task,
-    TaskTag,
     HuntMatch,
     VdfTaskConfig,
     VhfTaskConfig,
@@ -10,6 +9,7 @@ from .task import (
     FclTaskConfig,
     FclTaskInfo
 )
+from .tag import Tag
 from .face import Face, Frame
 from .subject import Subject, SubjectSegment
 from .stat import Stat

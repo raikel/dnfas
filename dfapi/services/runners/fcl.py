@@ -39,8 +39,8 @@ class FclTaskRunner(TaskRunner):
         if config.filter_back_days:
             back_time['days'] = config.filter_back_days
 
-        if config.filter_back_minutes:
-            back_time['minutes'] = config.filter_back_minutes
+        if config.filter_back_hours:
+            back_time['hours'] = config.filter_back_hours
 
         if len(back_time):
             now = make_aware(datetime.now())
@@ -110,7 +110,7 @@ class FclTaskRunner(TaskRunner):
             for face_ind in cluster:
                 face = faces_queryset[face_ind]
                 faces_cluster.append(face)
-                cluster_pks.update(face.id)
+                cluster_pks.update([face.id])
                 if face.subject is not None:
                     for face in face.subject.faces.all():
                         if (
@@ -118,7 +118,7 @@ class FclTaskRunner(TaskRunner):
                             face_ind.id not in cluster_pks
                         ):
                             faces_cluster.append(face)
-                            cluster_pks.update(face.id)
+                            cluster_pks.update([face.id])
 
             self.merge_faces(faces_cluster)
 

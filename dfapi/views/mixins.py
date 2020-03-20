@@ -5,7 +5,7 @@ from django.core.exceptions import (
 )
 from rest_framework import status
 from rest_framework.exceptions import (
-    NotFound as ApiNotFund,
+    NotFound as ApiNotFound,
     ValidationError as ApiValidationError
 )
 from rest_framework.response import Response
@@ -20,7 +20,7 @@ class RetrieveMixin:
             pk = int(pk)
             instance = self.queryset.get(pk=pk)
         except (ObjectDoesNotExist, ValueError):
-            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
+            raise ApiNotFound(f'A {self.model_name} with pk={pk} does not exist.')
 
         serializer = self.serializer_class(
             instance,
@@ -96,7 +96,7 @@ class UpdateMixin:
             pk = int(pk)
             instance = self.queryset.get(pk=pk)
         except (ObjectDoesNotExist, ValueError):
-            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
+            raise ApiNotFound(f'A {self.model_name} with pk={pk} does not exist.')
 
         serializer_context = {'request': request}
         serializer = update_serializer_class(
@@ -122,7 +122,7 @@ class DestroyMixin:
             pk = int(pk)
             instance = self.queryset.get(pk=pk)
         except (ObjectDoesNotExist, ValueError):
-            raise ApiNotFund(f'A {self.model_name} with pk={pk} does not exist.')
+            raise ApiNotFound(f'A {self.model_name} with pk={pk} does not exist.')
 
         instance.delete()
 

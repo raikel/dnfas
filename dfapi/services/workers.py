@@ -18,6 +18,7 @@ from .runners import (
     TaskRunner,
     VdfTaskRunner,
     PgaTaskRunner,
+    FclTaskRunner,
     VhfTaskRunner
 )
 from ..models import (
@@ -73,6 +74,8 @@ def create_task_runner(task: Task) -> TaskRunner:
         return VhfTaskRunner(task)
     elif task.task_type == Task.TYPE_PREDICT_GENDERAGE:
         return PgaTaskRunner(task)
+    elif task.task_type == Task.TYPE_FACE_CLUSTERING:
+        return FclTaskRunner(task)
     else:
         raise ValueError(f'Invalid task type "{task.task_type}"')
 

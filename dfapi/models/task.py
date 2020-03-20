@@ -4,10 +4,6 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 
 
-class TaskTag(models.Model):
-    name = models.CharField(max_length=64)
-
-
 class Task(models.Model):
 
     TYPE_VIDEO_DETECT_FACES = 'video_detect_faces'
@@ -50,7 +46,7 @@ class Task(models.Model):
 
     name = models.CharField(max_length=255, default='Task')
     tags = models.ManyToManyField(
-        'TaskTag',
+        'Tag',
         related_name='tasks'
     )
     task_type = models.CharField(
@@ -154,13 +150,10 @@ class VTaskInfo:
 class FclTaskConfig:
     """Face clustering task config. """
 
-    CLUSTERING_SEQUENTIAL = 'sequential'
-    CLUSTERING_GLOBAL = 'global'
-
     def __init__(self, *args, **kwargs):
         self.filter_back_weeks: int = kwargs.get('filter_back_weeks', None)
         self.filter_back_days: int = kwargs.get('filter_back_days', None)
-        self.filter_back_minutes: int = kwargs.get('filter_back_minutes', None)
+        self.filter_back_hours: int = kwargs.get('filter_back_hours', None)
         self.filter_min_date: str = kwargs.get('filter_min_date', None)
         self.filter_max_date: str = kwargs.get('filter_max_date', None)
         self.filter_min_time: str = kwargs.get('filter_min_time', None)
