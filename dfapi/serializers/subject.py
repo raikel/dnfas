@@ -36,8 +36,7 @@ class SubjectSerializer(MaskFieldsSerializer):
             'pred_age',
             'skin',
             'created_at',
-            'updated_at',
-            'task'
+            'updated_at'
         )
         read_only_fields = (
             'id',

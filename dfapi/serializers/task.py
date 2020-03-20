@@ -7,6 +7,8 @@ from ..models import (
     Camera,
     Subject,
     Task,
+    TaskTag,
+    TaskTag,
     VTaskConfig
 )
 from .abstracts import MaskFieldsSerializer
@@ -73,11 +75,86 @@ class PgaTaskConfigSerializer(serializers.Serializer):
     overwrite = serializers.BooleanField(required=False)
 
 
+class FclTaskConfigSerializer(serializers.Serializer):
+
+    filter_back_weeks = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
+    filter_back_days = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
+    filter_back_minutes = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
+    filter_min_date = serializers.DateField(
+        required=False,
+        allow_null=True
+    )
+    filter_max_date = serializers.DateField(
+        required=False,
+        allow_null=True
+    )
+    filter_min_time = serializers.TimeField(
+        required=False,
+        allow_null=True
+    )
+    filter_max_time = serializers.TimeField(
+        required=False,
+        allow_null=True
+    )
+    filter_tasks = serializers.ListSerializer(
+        child=serializers.IntegerField(min_value=0),
+        required=False
+    )
+    filter_tasks_tags = serializers.ListSerializer(
+        child=serializers.IntegerField(min_value=0),
+        required=False
+    )
+    similarity_thr = serializers.FloatField(
+        required=False,
+        min_value=0,
+        max_value=1
+    )
+    memory_seconds = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0
+    )
+
+    def validate(self, data):
+        filter_tasks = data['filter_tasks']
+        filter_tasks_tags = data['filter_tasks_tags']
+
+        for task_pk in filter_tasks:
+            Task.objects.get(pk=task_pk)
+
+        for tag_pk in filter_tasks_tags:
+            TaskTag.objects.get(pk=tag_pk)
+
+        return super().validate(data)
+
+
 _config_serializers = {
     Task.TYPE_VIDEO_DETECT_FACES: VdfTaskConfigSerializer,
     Task.TYPE_VIDEO_HUNT_FACES: VhfTaskConfigSerializer,
-    Task.TYPE_PREDICT_GENDERAGE: PgaTaskConfigSerializer
+    Task.TYPE_PREDICT_GENDERAGE: PgaTaskConfigSerializer,
+    Task.TYPE_FACE_CLUSTERING: FclTaskConfigSerializer
 }
+
+
+class TaskTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskTag
+        fields = (
+            'id',
+            'name'
+        )
 
 
 class TaskSerializer(MaskFieldsSerializer):
@@ -94,6 +171,10 @@ class TaskSerializer(MaskFieldsSerializer):
     config = serializers.JSONField(required=False, default=dict)
 
     # Read only
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
     status = serializers.CharField(read_only=True)
     started_at = serializers.DateTimeField(read_only=True)
     finished_at = serializers.DateTimeField(read_only=True)
@@ -118,6 +199,7 @@ class TaskSerializer(MaskFieldsSerializer):
         fields = (
             'id',
             'name',
+            'tags',
             'task_type',
             'schedule_start_at',
             'schedule_stop_at',

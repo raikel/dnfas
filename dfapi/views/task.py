@@ -5,11 +5,48 @@ from rest_framework.decorators import action
 
 from .mixins import (
     RetrieveMixin,
-    ListMixin
+    ListMixin,
+    CreateMixin,
+    UpdateMixin,
+    DestroyMixin
 )
-from ..models import Task
-from ..serializers import TaskSerializer
+from ..models import Task, TaskTag
+from ..serializers import TaskSerializer, TaskTagSerializer
 from .. import services
+
+
+class TaskTagView(
+    RetrieveMixin,
+    ListMixin,
+    CreateMixin,
+    UpdateMixin,
+    DestroyMixin,
+    viewsets.GenericViewSet
+):
+    """
+    retrieve:
+        Return a frame instance.
+
+    list:
+        Return all frames.
+
+    create:
+        Create a new frame.
+
+    destroy:
+        Remove an existing frame.
+
+    partial_update:
+        Update one or more fields on an existing frame.
+
+    detect_faces:
+        Detect faces in a frame instance.
+    """
+
+    model_name = 'TaskTag'
+    lookup_field = 'pk'
+    queryset = TaskTag.objects.all()
+    serializer_class = TaskTagSerializer
 
 
 class TaskView(

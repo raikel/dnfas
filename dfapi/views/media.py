@@ -91,34 +91,39 @@ class VideoRecordView(
 
     def get_queryset(self):
         queryset = self.queryset
+        params = self.request.query_params
 
-        tasks_running = self.request.query_params.get('tasks_running', None)
-        if tasks_running is not None:
-            queryset = queryset.filter(tasks__status=Task.STATUS_RUNNING)
+        name = self.request.query_params.get('name', None)
+        if name is not None:
+            queryset = queryset.filter(name__icontains=name)
 
-        min_timestamp = self.request.query_params.get('min_timestamp', None)
-        if min_timestamp is not None:
-            queryset = queryset.filter(created_at__gt=min_timestamp)
+        min_created_at = params.get('min_created_at', None)
+        if min_created_at is not None:
+            queryset = queryset.filter(created_at__gt=min_created_at)
 
-        max_timestamp = self.request.query_params.get('max_timestamp', None)
-        if max_timestamp is not None:
-            queryset = queryset.filter(created_at__lt=max_timestamp)
+        max_created_at = params.get('max_created_at', None)
+        if max_created_at is not None:
+            queryset = queryset.filter(created_at__lt=max_created_at)
 
-        min_duration = self.request.query_params.get('min_duration', None)
+        min_duration = params.get('min_duration', None)
         if min_duration is not None:
             try:
-                queryset = queryset.filter(duration_seconds__gt=float(min_duration))
+                queryset = queryset.filter(
+                    duration_seconds__gt=float(min_duration)
+                )
             except ValueError:
                 pass
 
-        max_duration = self.request.query_params.get('max_duration', None)
+        max_duration = params.get('max_duration', None)
         if max_duration is not None:
             try:
-                queryset = queryset.filter(duration_seconds__lt=float(max_duration))
+                queryset = queryset.filter(
+                    duration_seconds__lt=float(max_duration)
+                )
             except ValueError:
                 pass
 
-        order_by = self.request.query_params.get('order_by', None)
+        order_by = params.get('order_by', None)
         if order_by is not None:
             queryset = queryset.order_by(order_by)
 

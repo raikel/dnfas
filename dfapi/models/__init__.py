@@ -1,11 +1,14 @@
 from .media import VideoRecord, VideoThumb, Camera
 from .task import (
     Task,
+    TaskTag,
     HuntMatch,
     VdfTaskConfig,
     VhfTaskConfig,
     VTaskConfig,
-    PgaTaskConfig
+    PgaTaskConfig,
+    FclTaskConfig,
+    FclTaskInfo
 )
 from .face import Face, Frame
 from .subject import Subject, SubjectSegment

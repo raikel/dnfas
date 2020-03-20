@@ -66,8 +66,7 @@ class SubjectAdmin(admin.ModelAdmin):
         'sex',
         'skin',
         'created_at',
-        'updated_at',
-        'task'
+        'updated_at'
     )
     # list_display = (
     #     'id', 'name', 'created_at', 'updated_at',
@@ -77,8 +76,7 @@ class SubjectAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'full_name',
-        'age',
-        'task'
+        'age'
     )
     inlines = (FaceInline,)
 

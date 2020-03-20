@@ -39,7 +39,7 @@ def build_queryset(
 
     tasks = params.getlist('tasks', None)
     if tasks is not None and len(tasks):
-        queryset = queryset.filter(task__in=tasks)
+        queryset = queryset.filter(faces__task__in=tasks)
         filtered = True
 
     min_timestamp = params.get('min_timestamp', None)
@@ -76,9 +76,34 @@ def build_queryset(
             )
             filtered = True
 
+    min_pred_age = params.get('min_pred_age', None)
+    if min_pred_age is not None:
+        try:
+            min_pred_age = int(min_pred_age)
+        except ValueError:
+            pass
+        else:
+            queryset = queryset.filter(pred_age__gt=min_pred_age)
+            filtered = True
+
+    max_pred_age = params.get('max_pred_age', None)
+    if max_pred_age is not None:
+        try:
+            max_pred_age = int(max_pred_age)
+        except ValueError:
+            pass
+        else:
+            queryset = queryset.filter(pred_age__lt=max_pred_age)
+            filtered = True
+
     sex = params.get('sex', None)
     if sex is not None:
         queryset = queryset.filter(sex=sex)
+        filtered = True
+
+    pred_sex = params.get('pred_sex', None)
+    if pred_sex is not None:
+        queryset = queryset.filter(pred_sex=pred_sex)
         filtered = True
 
     skin = params.get('skin', None)
@@ -136,7 +161,8 @@ def demograp(subjects_queryset: QuerySet):
     women_count = 0
 
     for subject in subjects_queryset.iterator():
-        age, sex = pred_sexage(subject)
+        age = subject.pred_age
+        sex = subject.pred_sex
         if age and sex:
             if sex == Subject.SEX_MAN:
                 men_ages.append(age)

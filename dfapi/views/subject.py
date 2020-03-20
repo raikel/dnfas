@@ -57,8 +57,32 @@ class SubjectView(
         )
         return queryset
 
-    @action(detail=False)
-    def demograp(self, request):
+
+class DemograpView(
+    ListMixin,
+    viewsets.GenericViewSet
+):
+    """
+    list:
+        Return all subjects.
+    """
+
+    model_name = 'Subject'
+    lookup_field = 'pk'
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+
+    def get_queryset(self):
+        queryset = self.queryset.exclude(pred_sex__exact='')
+        queryset = queryset.exclude(pred_age__isnull=True)
+
+        queryset, _ = services.subjects.build_queryset(
+            queryset, self.request.query_params
+        )
+        return queryset
+
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
         data = services.subjects.demograp(self.get_queryset())
         return Response(data, status=status.HTTP_200_OK)
 

@@ -84,7 +84,8 @@ class FaceSerializer(MaskFieldsSerializer):
             'created_at',
             'pred_sex',
             'pred_age',
-            'timestamp'
+            'timestamp',
+            'task'
         )
         read_only_fields = (
             'id',
@@ -92,6 +93,7 @@ class FaceSerializer(MaskFieldsSerializer):
             'box',
             'pred_sex',
             'pred_age',
+            'task'
         )
 
 

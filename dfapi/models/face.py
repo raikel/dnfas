@@ -10,51 +10,35 @@ class Frame(models.Model):
     size_bytes = models.IntegerField(blank=True, default=0)
 
 
-class Face(models.Model):
+class Entity(models.Model):
 
-    SEX_MAN = 'man'
-    SEX_WOMAN = 'woman'
-
-    SEX_CHOICES = [
-        (SEX_MAN, 'man'),
-        (SEX_WOMAN, 'woman'),
-    ]
-
-    image = models.ImageField(upload_to=settings.FACES_IMAGES_PATH, null=True, blank=True)
-    box_bytes = models.BinaryField(null=True, blank=True)
-    landmarks_bytes = models.BinaryField(null=True, blank=True)
-    embeddings_bytes = models.BinaryField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    size_bytes = models.IntegerField(blank=True, null=True)
-    pred_sex = models.CharField(max_length=16, choices=SEX_CHOICES, blank=True, default='')
-    pred_age = models.PositiveIntegerField(blank=True, null=True)
-    timestamp = models.DateTimeField(null=True, blank=True, default=timezone.now)
-
-    frame = models.ForeignKey(
-        'Frame',
+    image = models.ImageField(
+        upload_to=settings.FACES_IMAGES_PATH,
+        null=True,
+        blank=True
+    )
+    box_bytes = models.BinaryField(
+        null=True,
+        blank=True
+    )
+    embeddings_bytes = models.BinaryField(
+        null=True,
+        blank=True
+    )
+    size_bytes = models.IntegerField(
+        blank=True,
+        null=True
+    )
+    timestamp = models.DateTimeField(
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
-        related_name='faces'
+        default=timezone.now
     )
-
-    subject = models.ForeignKey(
-        'Subject',
+    created_at = models.DateTimeField(
+        auto_now_add=True,
         null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name='faces'
+        blank=True
     )
-
-    @property
-    def landmarks(self):
-        if self.landmarks_bytes is not None:
-            return np.frombuffer(self.landmarks_bytes, np.float32).reshape((-1, 2))
-        return []
-
-    @landmarks.setter
-    def landmarks(self, val: [list, np.ndarray]):
-        self.landmarks_bytes = np.array(val, np.float32).tobytes()
 
     @property
     def box(self):
@@ -76,8 +60,89 @@ class Face(models.Model):
     def embeddings(self, val: [list, np.ndarray]):
         self.embeddings_bytes = np.array(val, np.float32).tobytes()
 
-    def __str__(self):
-        return f'{self.pk}'
-
     class Meta:
-        ordering = ['-frame__timestamp']
+        abstract = True
+
+
+class Face(Entity):
+
+    SEX_MAN = 'man'
+    SEX_WOMAN = 'woman'
+
+    SEX_CHOICES = [
+        (SEX_MAN, 'man'),
+        (SEX_WOMAN, 'woman'),
+    ]
+
+    landmarks_bytes = models.BinaryField(
+        null=True,
+        blank=True
+    )
+    pred_sex = models.CharField(
+        max_length=16,
+        choices=SEX_CHOICES,
+        blank=True,
+        default=''
+    )
+    pred_age = models.PositiveIntegerField(
+        blank=True,
+        null=True
+    )
+    frame = models.ForeignKey(
+        'Frame',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='faces'
+    )
+    subject = models.ForeignKey(
+        'Subject',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='faces'
+    )
+    task = models.ForeignKey(
+        'Task',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='faces'
+    )
+
+    @property
+    def landmarks(self):
+        if self.landmarks_bytes is not None:
+            return np.frombuffer(self.landmarks_bytes, np.float32).reshape((-1, 2))
+        return []
+
+    @landmarks.setter
+    def landmarks(self, val: [list, np.ndarray]):
+        self.landmarks_bytes = np.array(val, np.float32).tobytes()
+
+
+class PersonBody(Entity):
+
+    frame = models.ForeignKey(
+        'Frame',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='person_bodies'
+    )
+
+    subject = models.ForeignKey(
+        'Subject',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='person_bodies'
+    )
+
+    task = models.ForeignKey(
+        'Task',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='person_bodies'
+    )

@@ -45,14 +45,16 @@ class Subject(models.Model):
     birthdate = models.DateField(blank=True, null=True)
     sex = models.CharField(max_length=16, choices=SEX_CHOICES, blank=True, default='')
     skin = models.CharField(max_length=16, choices=SKIN_CHOICES, blank=True, default='')
+    pred_sex = models.CharField(max_length=16, choices=SEX_CHOICES, blank=True, default='')
+    pred_age = models.PositiveIntegerField(blank=True, null=True)
 
-    task = models.ForeignKey(
-        'Task',
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name='subjects'
-    )
+    # task = models.ForeignKey(
+    #     'Task',
+    #     null=True,
+    #     blank=True,
+    #     on_delete=models.CASCADE,
+    #     related_name='subjects'
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -100,46 +102,6 @@ class Subject(models.Model):
     #     if self.task is not None and self.task.video is not None:
     #         return self.task.video.pk
     #     return None
-
-    @cached_property
-    def pred_age(self):
-        faces = self.faces.all()
-        age = None
-        ages_sum = 0
-        ages_count = 0
-
-        for face in faces:
-            if face.pred_age:
-                ages_sum += face.pred_age
-                ages_count += 1
-
-        if ages_count:
-            age = ages_sum / ages_count
-
-        return age
-
-    @cached_property
-    def pred_sex(self):
-        faces = self.faces.all()
-        sex = ''
-        man_count = 0
-        woman_count = 0
-
-        for face in faces:
-            pred_sex = face.pred_sex
-            if pred_sex:
-                if pred_sex == self.SEX_MAN:
-                    man_count += 1
-                elif pred_sex == self.SEX_WOMAN:
-                    woman_count += 1
-
-        if man_count + woman_count:
-            if man_count > woman_count:
-                sex = self.SEX_MAN
-            else:
-                sex = self.SEX_WOMAN
-
-        return sex
 
     @staticmethod
     def queryset_train_data(queryset: QuerySet) -> Tuple[np.ndarray, np.ndarray]:

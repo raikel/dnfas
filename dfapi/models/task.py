@@ -4,6 +4,10 @@ from django.db import models
 from django.contrib.postgres.fields import JSONField
 
 
+class TaskTag(models.Model):
+    name = models.CharField(max_length=64)
+
+
 class Task(models.Model):
 
     TYPE_VIDEO_DETECT_FACES = 'video_detect_faces'
@@ -11,13 +15,15 @@ class Task(models.Model):
     TYPE_VIDEO_DETECT_PERSON = 'video_detect_person'
     TYPE_VIDEO_HUNT_PERSON = 'video_hunt_person'
     TYPE_PREDICT_GENDERAGE = 'predict_genderage'
+    TYPE_FACE_CLUSTERING = 'face_clustering'
 
     TYPE_CHOICES = [
         (TYPE_VIDEO_DETECT_FACES, 'video_detect_faces'),
         (TYPE_VIDEO_HUNT_FACES, 'video_hunt_faces'),
         (TYPE_VIDEO_DETECT_PERSON, 'video_detect_person'),
         (TYPE_VIDEO_HUNT_PERSON, 'video_hunt_person'),
-        (TYPE_PREDICT_GENDERAGE, 'predict_genderage')
+        (TYPE_PREDICT_GENDERAGE, 'predict_genderage'),
+        (TYPE_FACE_CLUSTERING, 'face_clustering')
     ]
 
     STATUS_CREATED = 'created'
@@ -43,6 +49,10 @@ class Task(models.Model):
     ]
 
     name = models.CharField(max_length=255, default='Task')
+    tags = models.ManyToManyField(
+        'TaskTag',
+        related_name='tasks'
+    )
     task_type = models.CharField(
         max_length=64,
         choices=TYPE_CHOICES,
@@ -139,6 +149,34 @@ class VTaskInfo:
         self.frames_count: int = 0
         self.processing_time: float = 0
         self.frame_rate: float = 0
+
+
+class FclTaskConfig:
+    """Face clustering task config. """
+
+    CLUSTERING_SEQUENTIAL = 'sequential'
+    CLUSTERING_GLOBAL = 'global'
+
+    def __init__(self, *args, **kwargs):
+        self.filter_back_weeks: int = kwargs.get('filter_back_weeks', None)
+        self.filter_back_days: int = kwargs.get('filter_back_days', None)
+        self.filter_back_minutes: int = kwargs.get('filter_back_minutes', None)
+        self.filter_min_date: str = kwargs.get('filter_min_date', None)
+        self.filter_max_date: str = kwargs.get('filter_max_date', None)
+        self.filter_min_time: str = kwargs.get('filter_min_time', None)
+        self.filter_max_time: str = kwargs.get('filter_max_time', None)
+        self.filter_tasks: List[int] = kwargs.get('filter_tasks', [])
+        self.filter_tasks_tags: List[int] = kwargs.get('filter_tasks_tags', [])
+        self.similarity_thr: float = kwargs.get('similarity_thr', 0.6)
+        self.memory_seconds: float = kwargs.get('memory_seconds', 3600)
+
+
+class FclTaskInfo:
+    """Face clustering task config. """
+
+    def __init__(self, *args, **kwargs):
+        self.processing_time: float = 0
+        self.faces_count: float = 0
 
 
 class HuntMatch(models.Model):
