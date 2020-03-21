@@ -24,6 +24,8 @@ def select_worker():
     queryset = Worker.objects.exclude(tasks__status__in=active_status)
     if len(queryset):
         for worker in queryset:
+            if worker.is_self():
+                return worker
             worker_api = WorkerApi(api_url=worker.api_url)
             if worker_api.is_online():
                 return worker
@@ -41,6 +43,8 @@ def select_worker():
 
     for worker in queryset:
         if worker.tasks_count < worker.max_load:
+            if worker.is_self():
+                return worker
             worker_api = WorkerApi(api_url=worker.api_url)
             if worker_api.is_online():
                 return worker
@@ -68,7 +72,7 @@ def start(task: Task):
     task.worker = worker
     task.save(update_fields=['worker'])
 
-    if worker.name.lower() == settings.WORKER_NAME.lower():
+    if worker.is_self():
         runner_manager.create(task.pk)
     else:
         worker_api = WorkerApi(api_url=worker.api_url)

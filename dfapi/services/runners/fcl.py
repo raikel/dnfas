@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List
+from time import time
 
 import numpy as np
 from django.utils.timezone import make_aware
@@ -24,6 +25,8 @@ class FclTaskRunner(TaskRunner):
         self._pause: bool = False
 
     def main_run(self):
+
+        started_at = time()
 
         config = self.task_config
 
@@ -69,15 +72,21 @@ class FclTaskRunner(TaskRunner):
                 created_at__time__lt=config.filter_max_time
             )
 
-        if len(config.filter_tasks):
+        if len(config.filter_tasks) and len(config.filter_tasks_tags):
             faces_queryset = faces_queryset.filter(
                 task__in=config.filter_tasks
-            )
-
-        if len(config.filter_tasks_tags):
-            faces_queryset = faces_queryset.filter(
+            ) | faces_queryset.filter(
                 task__tags__in=config.filter_tasks_tags
             )
+        else:
+            if len(config.filter_tasks):
+                faces_queryset = faces_queryset.filter(
+                    task__in=config.filter_tasks
+                )
+            if len(config.filter_tasks_tags):
+                faces_queryset = faces_queryset.filter(
+                    task__tags__in=config.filter_tasks_tags
+                )
 
         distance_thr = similarity_to_distance(self.task_config.similarity_thr)
         timestamp_thr = self.task_config.memory_seconds
@@ -122,12 +131,17 @@ class FclTaskRunner(TaskRunner):
 
             self.merge_faces(faces_cluster)
 
+        processing_time = time() - started_at
+        faces_count = faces_queryset.count()
+
+        self.task.info['processing_time'] = processing_time
+        self.task.info['faces_count'] = faces_count
+
     @staticmethod
     def merge_faces(faces_cluster: List[Face]):
         subject_data = {
             'name': '',
             'last_name': '',
-            'full_name': '',
             'birthdate': None,
             'sex': '',
             'skin': ''

@@ -25,6 +25,7 @@ class TaskRunner(Thread):
 
     TASK_UPDATE_FIELDS = [
         'status',
+        'updated_at',
         'started_at',
         'finished_at',
         'info',

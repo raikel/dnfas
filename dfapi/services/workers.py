@@ -121,7 +121,7 @@ def run_worker(recv_queue: mp.Queue):
                 try:
                     task_runner = task_runners[task_id]
                 except KeyError:
-                    logger.error(f'Invalid task id <{task_id}>.')
+                    logger.error(f'Invalid task id [{task_id}].')
                 else:
                     task_runner.stop()
                     del task_runners[task_id]
@@ -129,7 +129,7 @@ def run_worker(recv_queue: mp.Queue):
                 try:
                     task_runner = task_runners[task_id]
                 except KeyError:
-                    logger.error(f'Invalid task id <{task_id}>.')
+                    logger.error(f'Invalid task id [{task_id}].')
                 else:
                     task_runner.kill()
                     del task_runners[task_id]
@@ -137,14 +137,14 @@ def run_worker(recv_queue: mp.Queue):
                 try:
                     task_runner = task_runners[task_id]
                 except KeyError:
-                    logger.error(f'Invalid task id <{task_id}>.')
+                    logger.error(f'Invalid task id [{task_id}].')
                 else:
                     task_runner.pause()
             elif command == WorkerMessage.RESUME_TASK:
                 try:
                     task_runner = task_runners[task_id]
                 except KeyError:
-                    logger.error(f'Invalid task id <{task_id}>.')
+                    logger.error(f'Invalid task id [{task_id}].')
                 else:
                     task_runner.resume()
             else:
@@ -169,14 +169,13 @@ class Worker:
     def start(self):
         self.process.start()
 
-    @property
-    def task_count(self) -> int:
+    def update_index(self):
         task_ids = []
         for task_id in self.task_ids:
             try:
                 task = Task.objects.get(pk=task_id)
             except Task.DoesNotExist:
-                logger.error(f'Task <{task_id}> does not exists.')
+                logger.error(f'Task [{task_id}] does not exists.')
             else:
                 if task.status in (
                     Task.STATUS_CREATED,
@@ -186,6 +185,12 @@ class Worker:
                     task_ids.append(task_id)
 
         self.task_ids = task_ids
+
+    def has_task(self, task_id):
+        return task_id in self.task_ids
+
+    @property
+    def task_count(self) -> int:
         return len(self.task_ids)
 
     def start_task(self, task_id: int):
@@ -197,12 +202,12 @@ class Worker:
             self.task_ids.append(task_id)
         except QueueFullError:
             raise ServiceError(
-                f'Unable to start task <{task_id}>, worker queue timeout.'
+                f'Unable to start task [{task_id}], worker queue timeout.'
             )
 
     def stop_task(self, task_id: int):
         if task_id not in self.task_ids:
-            logger.error(f'Invalid task <{task_id}>.')
+            logger.error(f'Invalid task [{task_id}].')
             return
         try:
             self.send_queue.put({
@@ -212,12 +217,12 @@ class Worker:
             self.task_ids.remove(task_id)
         except QueueFullError:
             raise ServiceError(
-                f'Unable to stop task <{task_id}>, worker queue timeout.'
+                f'Unable to stop task [{task_id}], worker queue timeout.'
             )
 
     def pause_task(self, task_id: int):
         if task_id not in self.task_ids:
-            logger.error(f'Invalid task <{task_id}>')
+            logger.error(f'Invalid task [{task_id}]')
             return
         try:
             self.send_queue.put({
@@ -226,12 +231,12 @@ class Worker:
             }, timeout=WORKER_PUT_TIMEOUT)
         except QueueFullError:
             raise ServiceError(
-                f'Unable to pause task <{task_id}>, worker queue timeout.'
+                f'Unable to pause task [{task_id}], worker queue timeout.'
             )
 
     def resume_task(self, task_id: int):
         if task_id not in self.task_ids:
-            logger.error(f'Invalid task <{task_id}>')
+            logger.error(f'Invalid task [{task_id}]')
             return
         try:
             self.send_queue.put({
@@ -240,7 +245,7 @@ class Worker:
             }, timeout=WORKER_PUT_TIMEOUT)
         except QueueFullError:
             raise ServiceError(
-                f'Unable to resume task <{task_id}>, worker queue timeout.'
+                f'Unable to resume task [{task_id}], worker queue timeout.'
             )
 
 
@@ -250,15 +255,31 @@ class RunnerManager:
         self.tasks_worker: Dict[int, Worker] = {}
         self._id_count = 0
 
-    def create(self, task_id: int):
+    def update_index(self):
+        for worker in self.workers:
+            worker.update_index()
 
-        if task_id in self.tasks_worker:
-            raise ServiceError(f'Task <{task_id}> is already running.')
+        del_ids = []
+        for task_id, worker in self.tasks_worker.items():
+            if worker.has_task(task_id):
+                del_ids.append(task_id)
+            elif not worker.is_alive():
+                del_ids.append(task_id)
+
+        for task_id in del_ids:
+            del self.tasks_worker[task_id]
 
         self.workers = [
             worker for worker in self.workers
             if worker.is_alive()
         ]
+
+    def create(self, task_id: int):
+
+        self.update_index()
+
+        if task_id in self.tasks_worker:
+            raise ServiceError(f'Task [{task_id}] is already running.')
 
         if len(self.workers) < MAX_WORKERS:
             worker = Worker()
@@ -266,9 +287,7 @@ class RunnerManager:
             worker.start()
             self.workers.append(worker)
         else:
-            task_count = [
-                worker.task_count for worker in self.workers
-            ]
+            task_count = [worker.task_count for worker in self.workers]
             worker_ind = int(np.argmin(task_count))
             if task_count[worker_ind] >= MAX_TASKS_PER_WORKER:
                 raise ServiceError(
@@ -299,7 +318,7 @@ class RunnerManager:
                 raise ValueError
             return task_id
         except ValueError:
-            raise ServiceError(f'Invalid task <{task_id}>.')
+            raise ServiceError(f'Invalid task [{task_id}].')
 
 
 class WorkerApi:

@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Worker(models.Model):
@@ -10,6 +11,9 @@ class Worker(models.Model):
     max_load = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def is_self(self):
+        return self.name.lower() == settings.WORKER_NAME.lower()
 
     class Meta:
         ordering = ['updated_at']
