@@ -65,6 +65,10 @@ class SubjectAdmin(admin.ModelAdmin):
         'full_name',
         'age',
         'sex',
+        'pred_sex',
+        'pred_sex_score',
+        'pred_age',
+        'pred_age_var',
         'skin',
         'created_at',
         'updated_at'
@@ -99,7 +103,9 @@ class FaceAdmin(admin.ModelAdmin):
         'size_bytes',
         'subject',
         'pred_sex',
+        'pred_sex_score',
         'pred_age',
+        'pred_age_var',
         'embeddings'
     )
     readonly_fields = (

@@ -1,16 +1,21 @@
 import logging
-from datetime import datetime
+from datetime import timedelta, datetime, time
 
 from django.conf import settings
 from django.db.models import Count
 from django.utils.timezone import make_aware
+from django.utils import timezone
 
-from ..models import Task, Worker
 from .exceptions import ServiceError
 from .workers import RunnerManager, WorkerApi
+from ..models import Task
+from ..models import Worker
 
 logger_name = settings.LOGGER_NAME
 logger = logging.getLogger(logger_name)
+
+CHECK_TASKS_MAX_AGE_DAYS = 7
+CREATED_TASK_TIMEOUT_DAYS = 1
 
 runner_manager = RunnerManager()
 
@@ -60,10 +65,10 @@ def create(task: Task):
         task.schedule_start_at is not None and
         datetime_now >= task.schedule_start_at
     ):
-        start(task)
+        start_task(task)
 
 
-def start(task: Task):
+def start_task(task: Task):
 
     worker: Worker = select_worker()
     if worker is None:
@@ -84,7 +89,7 @@ def start(task: Task):
         )
 
 
-def pause(task: Task):
+def pause_task(task: Task):
     worker: Worker = task.worker
 
     if worker is None:
@@ -102,7 +107,7 @@ def pause(task: Task):
         )
 
 
-def resume(task):
+def resume_task(task):
     worker: Worker = task.worker
 
     if worker is None:
@@ -120,7 +125,7 @@ def resume(task):
         )
 
 
-def stop(task):
+def stop_task(task):
     worker: Worker = task.worker
 
     if worker is None:
@@ -136,3 +141,81 @@ def stop(task):
             username=worker.username,
             password=worker.password
         )
+
+
+def schedule_tasks():
+
+    now = make_aware(datetime.now())
+    min_timestamp = now - timedelta(days=CHECK_TASKS_MAX_AGE_DAYS)
+    tasks = Task.objects.filter(
+        updated_at__gt=min_timestamp,
+        repeat_days__exact=''
+    )
+
+    for task in tasks:
+        if task.status in (Task.STATUS_RUNNING, Task.STATUS_PAUSED):
+            if (
+                task.schedule_stop_at is not None and
+                now > task.schedule_stop_at
+            ):
+                try:
+                    stop_task(task)
+                except ServiceError as err:
+                    logger.error(err)
+        else:
+            if (
+                task.schedule_start_at is not None and
+                now > task.schedule_start_at and
+                task.started_at is None
+            ):
+                try:
+                    start_task(task)
+                except ServiceError as err:
+                    logger.error(err)
+
+
+def repeat_tasks():
+
+    now = timezone.localtime(timezone.now())
+    date_now = now.date()
+    time_now = now.time()
+
+    weekday = str(date_now.weekday())
+
+    # Get tasks that must run today
+    tasks = Task.objects.filter(
+        repeat_days__icontains=weekday
+    )
+    time_max_stop = time(hour=23)
+
+    for task in tasks:
+        schedule_stop_at = time_max_stop
+        if task.schedule_stop_at is not None:
+            schedule_stop_at = timezone.localtime(
+                task.schedule_stop_at).time()
+
+        schedule_start_at = None
+        if task.schedule_start_at is not None:
+            schedule_start_at = timezone.localtime(
+                task.schedule_start_at).time()
+
+        if task.status in (Task.STATUS_RUNNING, Task.STATUS_PAUSED):
+            if time_now > schedule_stop_at:
+                try:
+                    stop_task(task)
+                except ServiceError as err:
+                    logger.error(err)
+        else:
+            run_today = (
+                task.started_at is not None and
+                timezone.localdate(task.started_at) == date_now
+            )
+
+            if not run_today and (schedule_start_at is None or (
+                schedule_start_at is not None and
+                time_now >= schedule_start_at
+            )):
+                try:
+                    start_task(task)
+                except ServiceError as err:
+                    logger.error(err)

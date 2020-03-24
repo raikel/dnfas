@@ -1,11 +1,17 @@
+from os import path
+from typing import List
 from typing import Tuple
 
 import numpy as np
 from django.db.models import QuerySet
-from django.http import QueryDict
+from django.http import QueryDict, HttpRequest
+from openpyxl import Workbook
+from openpyxl.cell import Cell
 
 from ..models import Subject
-from ..models import SubjectSegment
+from ..models import (
+    SubjectSegment
+)
 
 
 def build_queryset(
@@ -124,34 +130,45 @@ def build_queryset(
 def pred_sexage(subject: Subject):
     faces = subject.faces.all()
     age = None
+    age_var = 0
     sex = ''
+    sex_score = 0
     ages_sum = 0
+    ages_var_sum = 0
     ages_count = 0
     man_count = 0
     woman_count = 0
+    sex_scores_man_sum = 0
+    sex_scores_woman_sum = 0
 
     for face in faces:
         if face.pred_age:
             ages_sum += face.pred_age
             ages_count += 1
+            ages_var_sum += face.pred_age_var
 
         pred_sex = face.pred_sex
         if pred_sex:
             if pred_sex == subject.SEX_MAN:
                 man_count += 1
+                sex_scores_man_sum += face.pred_sex_score
             elif pred_sex == subject.SEX_WOMAN:
                 woman_count += 1
+                sex_scores_woman_sum += face.pred_sex_score
 
     if ages_count:
         age = ages_sum / ages_count
+        age_var = ages_var_sum / ages_count
 
     if man_count + woman_count:
         if man_count > woman_count:
             sex = subject.SEX_MAN
+            sex_score = sex_scores_man_sum / man_count
         else:
             sex = subject.SEX_WOMAN
+            sex_score = sex_scores_woman_sum / woman_count
 
-    return age, sex
+    return age, age_var, sex, sex_score
 
 
 def demograp(subjects_queryset: QuerySet):
@@ -210,3 +227,66 @@ def age_stats(ages, labels):
         'min_value': min_age,
         'max_value': max_age
     }
+
+
+def fill_cell(subject: Subject, cell: Cell, col_key: str, request: HttpRequest):
+    if col_key == 'id':
+        cell.value = subject.pk
+    elif col_key == 'image':
+        image = subject.image
+        if image is None:
+            cell.value = ''
+        else:
+            cell.value = path.basename(image.path)
+            cell.hyperlink = request.build_absolute_uri(image.url)
+    elif col_key == 'created_at':
+        cell.value = subject.created_at
+    elif col_key == 'pred_sex':
+        cell.value = subject.pred_sex
+    elif col_key == 'pred_age':
+        cell.value = subject.pred_age
+    else:
+        raise ValueError(f'Invalid column "{col_key}".')
+
+
+def xls_export(
+    queryset: QuerySet,
+    request: HttpRequest,
+    title: str = 'Subjects',
+    columns: List[str] = None
+):
+
+    workbook = Workbook()
+
+    # Get active worksheet/tab
+    worksheet = workbook.active
+    worksheet.title = title
+
+    fields = {
+        'id': 'Id',
+        'image': 'Image',
+        'created_at': 'Created at',
+        'pred_sex': 'Predicted sex',
+        'pred_age': 'Predicted age'
+    }
+
+    if columns is not None:
+        fields = {key: val for key, val in fields.items() if key in columns}
+
+    # Define the titles for fields
+    row_num = 1
+
+    # Assign the titles for each cell of the header
+    for col_num, col_key in enumerate(fields.keys(), 1):
+        cell = worksheet.cell(row=row_num, column=col_num)
+        cell.value = fields[col_key]
+
+    # Iterate through all movies
+    for subject in queryset:
+        row_num += 1
+        # Assign the data for each cell of the row
+        for col_num, col_key in enumerate(fields, 1):
+            cell = worksheet.cell(row=row_num, column=col_num)
+            fill_cell(subject, cell, col_key, request)
+
+    return workbook

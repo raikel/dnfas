@@ -110,15 +110,22 @@ class PgaTaskRunner(TaskRunner):
             while self._pause:
                 sleep(PAUSE_DURATION)
 
-            pred_age, pred_sex = pred_sexage(subject)
+            pred_age, age_var, pred_sex, sex_score = pred_sexage(subject)
             if pred_age is not None:
                 subject.pred_age = int(pred_age)
+                subject.pred_age_var = age_var
 
             if pred_sex:
                 subject.pred_sex = pred_sex
+                subject.pred_sex_score = sex_score
 
             if pred_age is not None or pred_sex:
-                subject.save(update_fields=['pred_sex', 'pred_age'])
+                subject.save(update_fields=[
+                    'pred_sex',
+                    'pred_sex_score',
+                    'pred_age',
+                    'pred_age_var'
+                ])
 
     def predict_genderage(self, faces: List[Face]):
         genderage_predictor = self.faces_vision.genderage_predictor
@@ -134,6 +141,7 @@ class PgaTaskRunner(TaskRunner):
                 face_image_align, _ = face_aligner.align(face_image, landmarks)
                 faces_images.append(face_image_align)
                 faces_inds.append(ind)
+
                 # color = (0, 255, 0)
                 # for point in landmarks:
                 #     point = (int(point[0]), int(point[1]))
@@ -145,7 +153,13 @@ class PgaTaskRunner(TaskRunner):
 
         n_images = len(faces_images)
         if n_images:
-            genders, _, ages, _ = genderage_predictor.predict(faces_images)
+            (
+                genders,
+                genders_scores,
+                ages,
+                ages_vars
+            ) = genderage_predictor.predict(faces_images)
+
             for ind in range(n_images):
                 face = faces[faces_inds[ind]]
                 if genders[ind] == genderage_predictor.GENDER_WOMAN:
@@ -153,9 +167,16 @@ class PgaTaskRunner(TaskRunner):
                 elif genders[ind] == genderage_predictor.GENDER_MAN:
                     face.pred_sex = Face.SEX_MAN
 
+                face.pred_sex_score = genders_scores[ind]
                 face.pred_age = int(ages[ind])
+                face.pred_age_var = ages_vars[ind]
 
-                face.save(update_fields=['pred_sex', 'pred_age'])
+                face.save(update_fields=[
+                    'pred_sex',
+                    'pred_sex_score',
+                    'pred_age',
+                    'pred_age_var'
+                ])
 
     def pause(self):
         self._pause = True

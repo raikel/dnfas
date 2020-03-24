@@ -183,12 +183,12 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'dfapi.tasks.update_daily_stats',
         'schedule': crontab(hour=1)
     },
-    'clean_database': {
-        'task': 'dfapi.tasks.clean_database',
-        'schedule': crontab(hour=3)
-    },
-    'check_tasks': {
-        'task': 'dfapi.tasks.check_tasks',
+    # 'clean_database': {
+    #     'task': 'dfapi.tasks.clean_database',
+    #     'schedule': crontab(hour=3)
+    # },
+    'control_tasks': {
+        'task': 'dfapi.tasks.control_tasks',
         'schedule': 60 * 15
     },
 }

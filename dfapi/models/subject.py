@@ -47,6 +47,14 @@ class Subject(models.Model):
     skin = models.CharField(max_length=16, choices=SKIN_CHOICES, blank=True, default='')
     pred_sex = models.CharField(max_length=16, choices=SEX_CHOICES, blank=True, default='')
     pred_age = models.PositiveIntegerField(blank=True, null=True)
+    pred_sex_score = models.FloatField(
+        blank=True,
+        default=0.0
+    )
+    pred_age_var = models.FloatField(
+        blank=True,
+        default=0.0
+    )
 
     # task = models.ForeignKey(
     #     'Task',
@@ -69,6 +77,15 @@ class Subject(models.Model):
             if face.image:
                 return face.image
         return None
+
+    @cached_property
+    def timestamp(self):
+        dt = None
+        for face in self.faces.all():
+            if dt is None or face.created_at > dt:
+                dt = face.created_at
+
+        return self.created_at if dt is None else dt
 
     @cached_property
     def age(self):

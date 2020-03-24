@@ -40,7 +40,11 @@ class VdfTaskConfigSerializer(VTaskConfigSerializer):
 
     detection_min_height = serializers.IntegerField(required=False)
     detection_min_score = serializers.FloatField(required=False)
-    similarity_thresh = serializers.FloatField(required=False)
+    similarity_thresh = serializers.FloatField(
+        required=False,
+        min_value=0,
+        max_value=0.99999
+    )
     max_frame_size = serializers.IntegerField(required=False)
     frontal_faces = serializers.BooleanField(required=False)
     video_detect_interval = serializers.FloatField(required=False)
@@ -116,7 +120,7 @@ class FclTaskConfigSerializer(serializers.Serializer):
     similarity_thr = serializers.FloatField(
         required=False,
         min_value=0,
-        max_value=1
+        max_value=0.99999
     )
     memory_seconds = serializers.IntegerField(
         required=False,

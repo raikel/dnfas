@@ -1,9 +1,13 @@
+from datetime import datetime
+
 from django.conf import settings
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.views import APIView
+
+from ..services.subjects import xls_export
 
 from .mixins import (
     RetrieveMixin,
@@ -19,6 +23,9 @@ from ..serializers import (
     SubjectSerializer,
     SubjectSegmentSerializer
 )
+
+XLS_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+XLS_NAME = 'attachment; filename="faces-{}.xlsx"'
 
 
 class SubjectView(
@@ -85,6 +92,22 @@ class DemograpView(
     def stats(self, request):
         data = services.subjects.demograp(self.get_queryset())
         return Response(data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=['get'])
+    def export(self, request, *args, **kwargs):
+        now = datetime.now().strftime('%Y-%m-%d')
+        response = HttpResponse(content_type=XLS_MIME)
+        response['Content-Disposition'] = XLS_NAME.format(now)
+
+        columns = self.request.query_params.getlist('columns', None)
+        workbook = xls_export(
+            self.get_queryset(),
+            columns=columns,
+            request=request
+        )
+        workbook.save(response)
+
+        return response
 
 
 class SubjectSegmentView(

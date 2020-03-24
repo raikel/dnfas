@@ -84,9 +84,17 @@ class Face(Entity):
         blank=True,
         default=''
     )
+    pred_sex_score = models.FloatField(
+        blank=True,
+        default=0.0
+    )
     pred_age = models.PositiveIntegerField(
         blank=True,
         null=True
+    )
+    pred_age_var = models.FloatField(
+        blank=True,
+        default=0.0
     )
     frame = models.ForeignKey(
         'Frame',

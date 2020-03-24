@@ -15,10 +15,13 @@ class SubjectSerializer(MaskFieldsSerializer):
     age = serializers.IntegerField(read_only=True)
     last_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     birthdate = serializers.DateField(required=False, allow_null=True)
+    timestamp = serializers.DateTimeField(read_only=True)
     sex = serializers.CharField(required=False, allow_blank=True)
     skin = serializers.CharField(required=False, allow_blank=True)
     pred_sex = serializers.CharField(read_only=True)
+    pred_sex_score = serializers.FloatField(read_only=True)
     pred_age = serializers.IntegerField(read_only=True)
+    pred_age_var = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Subject
@@ -33,10 +36,13 @@ class SubjectSerializer(MaskFieldsSerializer):
             'birthdate',
             'sex',
             'pred_sex',
+            'pred_sex_score',
             'pred_age',
+            'pred_age_var',
             'skin',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'timestamp'
         )
         read_only_fields = (
             'id',
@@ -46,7 +52,10 @@ class SubjectSerializer(MaskFieldsSerializer):
             'age',
             'image',
             'pred_sex',
+            'pred_sex_score',
             'pred_age',
+            'pred_age_var',
+            'timestamp'
         )
 
 

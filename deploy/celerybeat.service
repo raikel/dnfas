@@ -8,6 +8,7 @@ Type=simple
 User=<USER_NAME>
 Group=<GROUP_NAME>
 EnvironmentFile=/etc/celery/celery.conf
+EnvironmentFile=/etc/dnfas/dnfas.conf
 WorkingDirectory=<APP_ROOT_DIR>
 ExecStart=/bin/sh -c '${CELERY_BIN} beat  \
   -A ${CELERY_APP} --pidfile=${CELERYBEAT_PID_FILE} \

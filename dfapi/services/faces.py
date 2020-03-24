@@ -1,21 +1,22 @@
 import logging
+import signal
 import uuid
 from multiprocessing import Process, Queue
 from os import path
 from queue import Empty as QueueEmptyError
 from queue import Full as QueueFullError
-import signal
 from typing import List
-
-from django import db
 
 import cv2 as cv
 import numpy as np
+from django import db
 from django.conf import settings
+from django.db.models import QuerySet
+from dnfal.alignment import FaceAligner
+from dnfal.genderage import GenderAgePredictor
 from dnfal.settings import Settings
 from dnfal.vision import FacesVision
-from dnfal.genderage import GenderAgePredictor
-from dnfal.alignment import FaceAligner
+from openpyxl import Workbook
 
 from .exceptions import ServiceError
 from ..models import (
@@ -367,3 +368,4 @@ def execute_task(send_queue: Queue, recv_queue: Queue):
 
 
 face_analyzer = FaceAnalyzer()
+

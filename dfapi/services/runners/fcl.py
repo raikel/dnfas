@@ -88,6 +88,8 @@ class FclTaskRunner(TaskRunner):
                     task__tags__in=config.filter_tasks_tags
                 )
 
+        faces_queryset = faces_queryset.order_by('created_at')
+
         distance_thr = similarity_to_distance(self.task_config.similarity_thr)
         timestamp_thr = self.task_config.memory_seconds
 
@@ -104,10 +106,9 @@ class FclTaskRunner(TaskRunner):
 
         labels, clusters = cluster_features(
             features=embeddings,
-            timestamps=timestamps,
+            timestamps=None, #timestamps,
             distance_thr=distance_thr,
             timestamp_thr=timestamp_thr,
-            min_samples=2,
             grouped=True
         )
 

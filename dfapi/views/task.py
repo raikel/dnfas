@@ -131,7 +131,7 @@ class TaskView(
             raise ValidationError(f'Attempt to delete an active task.')
 
         try:
-            services.tasks.stop(task)
+            services.tasks.stop_task(task)
         except services.ServiceError as err:
             pass
 
@@ -166,13 +166,13 @@ class TaskView(
 
         try:
             if action_name == 'start':
-                services.tasks.start(task)
+                services.tasks.start_task(task)
             elif action_name == 'pause':
-                services.tasks.pause(task)
+                services.tasks.pause_task(task)
             elif action_name == 'resume':
-                services.tasks.resume(task)
+                services.tasks.resume_task(task)
             elif action_name == 'stop':
-                services.tasks.stop(task)
+                services.tasks.stop_task(task)
         except services.ServiceError as err:
             raise ValidationError(err)
 

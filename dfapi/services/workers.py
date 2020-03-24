@@ -261,7 +261,7 @@ class RunnerManager:
 
         del_ids = []
         for task_id, worker in self.tasks_worker.items():
-            if worker.has_task(task_id):
+            if not worker.has_task(task_id):
                 del_ids.append(task_id)
             elif not worker.is_alive():
                 del_ids.append(task_id)
