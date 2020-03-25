@@ -150,6 +150,18 @@ class VTaskInfo:
 class FclTaskConfig:
     """Face clustering task config. """
 
+    LINKAGE_WARD = 'ward'
+    LINKAGE_AVERAGE = 'average'
+    LINKAGE_SINGLE = 'single'
+    LINKAGE_COMPLETE = 'complete'
+
+    LINKAGE_CHOICES = [
+        (LINKAGE_WARD, 'ward'),
+        (LINKAGE_AVERAGE, 'average'),
+        (LINKAGE_SINGLE, 'single'),
+        (LINKAGE_COMPLETE, 'complete'),
+    ]
+
     def __init__(self, *args, **kwargs):
         self.filter_back_weeks: int = kwargs.get('filter_back_weeks', None)
         self.filter_back_days: int = kwargs.get('filter_back_days', None)
@@ -160,7 +172,10 @@ class FclTaskConfig:
         self.filter_max_time: str = kwargs.get('filter_max_time', None)
         self.filter_tasks: List[int] = kwargs.get('filter_tasks', [])
         self.filter_tasks_tags: List[int] = kwargs.get('filter_tasks_tags', [])
-        self.similarity_thr: float = kwargs.get('similarity_thr', 0.6)
+        self.top_dist_thr: float = kwargs.get('top_dist_thr', 0.6)
+        self.low_dist_thr: float = kwargs.get('low_dist_thr', 0.6)
+        self.edge_thr: float = kwargs.get('edge_thr', 0.5)
+        self.linkage: str = kwargs.get('linkage', self.LINKAGE_WARD)
         self.memory_seconds: float = kwargs.get('memory_seconds', 3600)
 
 

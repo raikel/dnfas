@@ -48,6 +48,11 @@ def build_queryset(
         queryset = queryset.filter(faces__task__in=tasks)
         filtered = True
 
+    tasks_tags = params.getlist('tasks_tags', None)
+    if tasks_tags is not None and len(tasks_tags):
+        queryset = queryset.filter(faces__task__tags__in=tasks_tags)
+        filtered = True
+
     min_timestamp = params.get('min_timestamp', None)
     if min_timestamp is not None:
         queryset = queryset.filter(created_at__gt=min_timestamp)

@@ -4,7 +4,8 @@ from time import time
 
 import numpy as np
 from django.utils.timezone import make_aware
-from dnfal.engine import cluster_features, similarity_to_distance
+from dnfal.engine import similarity_to_distance
+from dnfal.clustering import hcg_cluster
 
 from .task import TaskRunner
 from ...models import (
@@ -90,7 +91,10 @@ class FclTaskRunner(TaskRunner):
 
         faces_queryset = faces_queryset.order_by('created_at')
 
-        distance_thr = similarity_to_distance(self.task_config.similarity_thr)
+        top_dist_thr = similarity_to_distance(self.task_config.top_dist_thr)
+        low_dist_thr = similarity_to_distance(self.task_config.low_dist_thr)
+        edge_thr = self.task_config.edge_thr
+        linkage = self.task_config.linkage
         timestamp_thr = self.task_config.memory_seconds
 
         embeddings = []
@@ -99,17 +103,26 @@ class FclTaskRunner(TaskRunner):
         for face in faces_queryset.iterator():
             embeddings.append(face.embeddings)
             queryset_pks.append(face.id)
-            if timestamp_thr:
-                timestamps.append([face.created_at.timestamp()])
+            if timestamps is not None:
+                timestamps.append(face.created_at.timestamp())
 
         embeddings = np.array(embeddings, np.float32)
 
-        labels, clusters = cluster_features(
+        if timestamps is not None:
+            min_timestamp = min(timestamps)
+            max_timestamp = max(timestamps)
+            if max_timestamp - min_timestamp < timestamp_thr:
+                timestamps = None
+            else:
+                timestamps = np.array(timestamps).reshape((-1, 1))
+
+        clusters = hcg_cluster(
             features=embeddings,
-            timestamps=None, #timestamps,
-            distance_thr=distance_thr,
+            timestamps=timestamps,
+            distance_thr=(top_dist_thr, low_dist_thr),
             timestamp_thr=timestamp_thr,
-            grouped=True
+            edge_thr=edge_thr,
+            linkage=linkage
         )
 
         queryset_pks = set(queryset_pks)
@@ -118,6 +131,7 @@ class FclTaskRunner(TaskRunner):
             faces_cluster = []
             cluster_pks = set()
             for face_ind in cluster:
+                face_ind = int(face_ind)
                 face = faces_queryset[face_ind]
                 faces_cluster.append(face)
                 cluster_pks.update([face.id])
@@ -125,7 +139,7 @@ class FclTaskRunner(TaskRunner):
                     for face in face.subject.faces.all():
                         if (
                             face.id not in queryset_pks and
-                            face_ind.id not in cluster_pks
+                            face.id not in cluster_pks
                         ):
                             faces_cluster.append(face)
                             cluster_pks.update([face.id])

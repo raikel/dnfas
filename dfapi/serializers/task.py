@@ -7,7 +7,8 @@ from ..models import (
     Subject,
     Task,
     Tag,
-    VTaskConfig
+    VTaskConfig,
+    FclTaskConfig
 )
 
 
@@ -117,10 +118,24 @@ class FclTaskConfigSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=0),
         required=False
     )
-    similarity_thr = serializers.FloatField(
+    top_dist_thr = serializers.FloatField(
         required=False,
         min_value=0,
         max_value=0.99999
+    )
+    low_dist_thr = serializers.FloatField(
+        required=False,
+        min_value=0,
+        max_value=0.99999
+    )
+    edge_thr = serializers.FloatField(
+        required=False,
+        min_value=0,
+        max_value=1
+    )
+    linkage = serializers.ChoiceField(
+        required=False,
+        choices=FclTaskConfig.LINKAGE_CHOICES
     )
     memory_seconds = serializers.IntegerField(
         required=False,
